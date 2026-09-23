@@ -1,0 +1,83 @@
+{
+  "project_name": "Telecanto Pizza - Online Ordering & Admin System",
+  "archetype": "Modern Street Food & Urban Delivery (Light Theme, High-Vibrancy Magenta Accent)",
+  "language": "Greek (Ελληνικά) & English fallback",
+  "theme": {
+    "mode": "light",
+    "background_primary": "#FFFFFF",
+    "background_secondary": "#F4F5F7",
+    "background_tertiary": "#EAECEF",
+    "card_background": "#FFFFFF",
+    "card_border": "#E2E8F0",
+    "text_primary": "#0F172A",
+    "text_secondary": "#475569",
+    "text_muted": "#94A3B8",
+    "accent_primary": "#E01E5A",
+    "accent_primary_hover": "#C2184B",
+    "accent_light": "#FFF1F5",
+    "accent_border": "#FFB8D2",
+    "pickup_highlight_bg": "#10B981",
+    "pickup_highlight_text": "#FFFFFF",
+    "delivery_highlight_bg": "#E01E5A",
+    "delivery_highlight_text": "#FFFFFF",
+    "badge_new_bg": "#FEF3C7",
+    "badge_new_text": "#92400E",
+    "status_colors": {
+      "Νέα": { "bg": "#FEF3C7", "text": "#B45309", "border": "#FDE68A" },
+      "Επιβεβαιωμένη": { "bg": "#E0F2FE", "text": "#0369A1", "border": "#BAE6FD" },
+      "Σε προετοιμασία": { "bg": "#F3E8FF", "text": "#6B21A8", "border": "#E9D5FF" },
+      "Έτοιμη": { "bg": "#D1FAE5", "text": "#065F46", "border": "#A7F3D0" },
+      "Προς παράδοση": { "bg": "#FCE7F3", "text": "#9D174D", "border": "#FBCFE8" },
+      "Ολοκληρωμένη": { "bg": "#ECFDF5", "text": "#047857", "border": "#A7F3D0" },
+      "Ακυρωμένη": { "bg": "#FEE2E2", "text": "#B91C1C", "border": "#FCA5A5" }
+    }
+  },
+  "typography": {
+    "font_family_heading": "'Outfit', 'Plus Jakarta Sans', sans-serif",
+    "font_family_body": "'Manrope', 'Plus Jakarta Sans', sans-serif",
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap",
+    "scale": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-bold",
+      "h4": "text-lg font-semibold",
+      "body_large": "text-base sm:text-lg font-medium leading-relaxed",
+      "body_regular": "text-sm sm:text-base font-normal leading-normal",
+      "caption": "text-xs font-semibold uppercase tracking-wider text-slate-500"
+    }
+  },
+  "responsive": {
+    "breakpoint": "mobile-first",
+    "layout": "Single column scroll on mobile (<768px) with sticky top category navigation pill bar and floating/sticky bottom cart bar. On desktop (>=1024px), split grid with prominent category scroller, 3-column food grid, and side sticky cart drawer/sidebar.",
+    "typography": "Fluid scaling with rem units. Large inputs on mobile (min 44px height, 16px font size to prevent iOS auto-zoom).",
+    "overflow_guard": "Use overflow-x-hidden on body and max-w-full on all containers.",
+    "tap_targets": "Minimum 44x44px touch targets for all interactive buttons, radios, count adjustments, and toppings toggles."
+  },
+  "image_urls": {
+    "hero_banner": "https://images.unsplash.com/photo-1542834369-f10ebf06d3e0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxnb3VybWV0JTIwcGl6emElMjBzdHJlZXQlMjBmb29kJTIwc2xpY2UlMjBjaGVlc2V8ZW58MHx8fHwxNzkwMjAzNzc5fDA&ixlib=rb-4.1.0&q=85",
+    "logo_placeholder": "/logo-telecanto.png",
+    "categories": {
+      "Πίτσες": "https://images.unsplash.com/photo-1576830673997-8c76ff5c941d?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Panozzo": "https://images.pexels.com/photos/31587831/pexels-photo-31587831.jpeg?auto=compress&cs=tinysrgb&w=650",
+      "Καλτσόνε": "https://images.unsplash.com/photo-1655070249064-2556803629b6?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Τυρολίνα": "https://images.unsplash.com/photo-1688149825046-2f01dbcd90ad?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Ζυμαρικά": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Σαλάτες": "https://images.unsplash.com/photo-1623073119837-076224785565?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Ορεκτικά": "https://images.unsplash.com/photo-1681102328199-03d6355371f4?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Γλυκά": "https://images.unsplash.com/photo-1626263468007-a9e0cf83f1ac?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "Ποτά": "https://images.pexels.com/photos/5532830/pexels-photo-5532830.jpeg?auto=compress&cs=tinysrgb&w=650",
+      "Προσφορές": "https://images.unsplash.com/photo-1552580715-4d9bc27f1e2f?crop=entropy&cs=srgb&fm=jpg&q=85"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Ensure the design remains strictly LIGHT THEME with clean white cards, soft slate borders (#E2E8F0), and vivid Telecanto Magenta (#E01E5A) for accents.",
+    "Do NOT use dark full-page backgrounds or vintage wood Italian patterns.",
+    "Highlight the Pickup option ('ΠΑΡΑΛΑΒΗ ΑΠΟ ΤΟ ΚΑΤΑΣΤΗΜΑ') prominently alongside Delivery ('DELIVERY'). Provide a toggle banner right at top of store front.",
+    "Build a 5-step checkout process: (1. Mode selection -> 2. Personal Details -> 3. Delivery Address / Store Pickup Point -> 4. Cash / IRIS Payment Selection -> 5. Confirmation & Live Order Status Tracker).",
+    "Include Cash and IRIS payments ONLY. Expressly indicate 'Χωρίς πιστωτική κάρτα / Card payments disabled'.",
+    "Implement the product customization modal with real-time price calculation (Size: Ατομική, Κανονική, Γίγας; Dough options; Extra toppings with price per topping; Special requests textarea).",
+    "Add test IDs (`data-testid`) to all key buttons, inputs, product items, cart elements, order status badges, and admin action elements.",
+    "Provide customer features: Login/Register modal or screen, Order History, Favorites heart toggle, Loyalty Points balance & redemption during checkout.",
+    "Build full Admin Dashboard: Today's Orders counter, Total Revenue, Popular items chart, Opening Hours toggle (Ανοιχτό / Κλειστό), Delivery Zone editor, CRUD for products/categories/offers, live audio/visual ping for new incoming orders."
+  ]
+}

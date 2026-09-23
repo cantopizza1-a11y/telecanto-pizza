@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
+body {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #F7F8FA;
+  color: #0F172A;
+}
+h1, h2, h3, h4, .font-display { font-family: 'Outfit', 'Manrope', sans-serif; letter-spacing: -0.02em; }
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 337 76% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 337 100% 97%;
+    --accent-foreground: 337 76% 50%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 337 76% 50%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+
+/* Hide scrollbar for category rail */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Telecanto brand utilities */
+.brand-magenta { color: #E01E5A; }
+.bg-brand { background-color: #E01E5A; }
+.hover-brand:hover { background-color: #C2184B; }
+.ring-brand { --tw-ring-color: #E01E5A; }
+.text-brand { color: #E01E5A; }
+.border-brand { border-color: #E01E5A; }
+.chip-shadow { box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 8px rgba(15,23,42,.04); }
+.card-hover { transition: transform .18s ease, box-shadow .18s ease; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(15,23,42,.08); }
+
+input, select, textarea { font-size: 16px; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.new-order-pulse { animation: pulse-magenta 1.2s ease-in-out infinite; }
+@keyframes pulse-magenta {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224,30,90,.5); }
+  50% { box-shadow: 0 0 0 12px rgba(224,30,90,0); }
+}
