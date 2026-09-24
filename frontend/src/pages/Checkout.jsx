@@ -30,6 +30,9 @@ export default function Checkout() {
     area: "", address: "", address_number: "", floor: "", notes: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    if (user) setForm((f) => ({ ...f, name: f.name || user.name || "", phone: f.phone || user.phone || "", email: f.email || user.email || "" }));
+  }, [user]);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
