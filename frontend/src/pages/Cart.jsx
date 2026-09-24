@@ -29,6 +29,7 @@ export default function Cart() {
                     <div className="font-bold">{it.name}</div>
                     {it.size && <div className="text-xs text-slate-500">{it.size}</div>}
                     {it.extras?.length > 0 && <div className="text-xs text-slate-500">+ {it.extras.map((e) => e.name).join(", ")}</div>}
+                    {it.choices?.length > 0 && <div className="text-xs text-slate-600 font-semibold">{it.choices.join(" · ")}</div>}
                     {it.notes && <div className="text-xs text-slate-400 italic">{it.notes}</div>}
                     <div className="mt-2 flex items-center gap-2">
                       <button onClick={() => updateQty(it.key, it.quantity - 1)} className="w-8 h-8 rounded-full bg-slate-100"><Minus className="w-4 h-4 mx-auto" /></button>

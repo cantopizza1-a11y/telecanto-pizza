@@ -29,13 +29,15 @@ export default function AdminCategories() {
       </div>
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50"><tr className="text-left"><th className="p-3">Όνομα</th><th className="p-3">Slug</th><th className="p-3">Σειρά</th><th className="p-3">Ενεργή</th><th></th></tr></thead>
+          <thead className="bg-slate-50"><tr className="text-left"><th className="p-3">Όνομα</th><th className="p-3">Slug</th><th className="p-3">Σειρά</th><th className="p-3">Για</th><th className="p-3">Ενεργή</th><th></th></tr></thead>
           <tbody>
             {items.map((c) => (
               <tr key={c.id} className="border-t border-slate-100">
                 <td className="p-3"><Input value={c.name} onChange={(e) => upd(c, { name: e.target.value })} /></td>
                 <td className="p-3 text-slate-500">{c.slug}</td>
                 <td className="p-3"><Input type="number" value={c.order} onChange={(e) => upd(c, { order: parseInt(e.target.value) || 0 })} className="w-20" /></td>
+                <td className="p-3"><select value={c.mode || "all"} onChange={(e) => upd(c, { mode: e.target.value })} className="h-9 border border-slate-200 rounded-lg px-2 text-xs" data-testid={`cat-mode-${c.slug}`}>
+                  <option value="all">Όλα</option><option value="delivery">Delivery</option><option value="pickup">Παραλαβή</option></select></td>
                 <td className="p-3"><Switch checked={c.active} onCheckedChange={(v) => upd(c, { active: v })} /></td>
                 <td className="p-3"><button onClick={() => del(c.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></button></td>
               </tr>

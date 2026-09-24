@@ -34,6 +34,7 @@ export default function PrintTicket() {
         <div key={i} style={{ marginBottom: 4 }}>
           <div className="row b"><span>{it.quantity}x {it.name}</span><span>{formatEuro(it.line_total)}</span></div>
           {it.size && <div>&nbsp;&nbsp;{it.size}</div>}
+          {it.choices?.map((c, j) => <div key={j}>&nbsp;&nbsp;- {c}</div>)}
           {it.extras?.length > 0 && <div>&nbsp;&nbsp;+ {it.extras.map((e) => e.name).join(", ")}</div>}
           {it.notes && <div>&nbsp;&nbsp;* {it.notes}</div>}
         </div>

@@ -75,6 +75,7 @@ class LoginIn(BaseModel):
 class Category(BaseModel):
     id: str = Field(default_factory=uid)
     name: str; slug: str; image: Optional[str] = ""; order: int = 0; active: bool = True
+    mode: str = "all"
 
 class ProductSize(BaseModel):
     label: str; price: float
@@ -87,12 +88,14 @@ class Product(BaseModel):
     extras: List[dict] = []  # [{name, price}]
     toppings: List[dict] = []
     active: bool = True; popular: bool = False; order: int = 0
+    mode: str = "all"  # all | delivery | pickup
+    bundle: Optional[dict] = None  # {pizzas: n, salad: bool}
     created_at: str = Field(default_factory=now_iso)
 
 class OrderItemIn(BaseModel):
     product_id: str; name: str; quantity: int = 1
     size: Optional[str] = None; size_price: Optional[float] = None
-    extras: List[dict] = []; notes: str = ""; unit_price: float; line_total: float
+    extras: List[dict] = []; choices: List[str] = []; notes: str = ""; unit_price: float; line_total: float
 
 class OrderIn(BaseModel):
     items: List[OrderItemIn]
@@ -294,6 +297,9 @@ async def create_order(data: OrderIn, request: Request):
             raise HTTPException(400, "Μη έγκυρη ώρα")
         if sched < datetime.now(timezone.utc) + timedelta(minutes=25):
             raise HTTPException(400, "Η ώρα παράδοσης πρέπει να είναι τουλάχιστον 25' μετά")
+    pids = [i.product_id for i in data.items]
+    async for p in db.products.find({"id": {"$in": pids}, "mode": {"$nin": ["all", None, data.mode]}}, {"name": 1}):
+        raise HTTPException(400, f"Το «{p['name']}» ισχύει μόνο για {'παραλαβή' if data.mode == 'delivery' else 'delivery'}")
     order = data.model_dump()
     if data.mode == "delivery":
         zone = await db.zones.find_one({"name": data.area, "active": True})

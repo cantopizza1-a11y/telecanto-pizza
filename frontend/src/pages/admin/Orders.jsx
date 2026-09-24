@@ -71,7 +71,7 @@ export default function AdminOrders() {
             <div className="mt-3 space-y-1 text-sm border-t pt-3">
               {sel.items.map((it, i) => (
                 <div key={i} className="flex justify-between">
-                  <span>{it.quantity}× {it.name}{it.size ? ` (${it.size})` : ""}</span>
+                  <span>{it.quantity}× {it.name}{it.size ? ` (${it.size})` : ""}{it.choices?.length > 0 && <span className="block text-xs text-slate-500">{it.choices.join(" · ")}</span>}</span>
                   <span>{formatEuro(it.line_total)}</span>
                 </div>
               ))}

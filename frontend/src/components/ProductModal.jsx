@@ -6,16 +6,23 @@ import { useCart } from "@/context/CartContext";
 import { formatEuro } from "@/lib/api";
 import { toast } from "sonner";
 
-export default function ProductModal({ product, onClose }) {
+export default function ProductModal({ product, onClose, allProducts = [], categories = [] }) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product?.sizes?.[0] || null);
   const [extras, setExtras] = useState([]);
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
+  const [picks, setPicks] = useState([]);
 
-  useEffect(() => { setSize(product?.sizes?.[0] || null); setExtras([]); setQty(1); setNotes(""); }, [product]);
+  useEffect(() => { setSize(product?.sizes?.[0] || null); setExtras([]); setQty(1); setNotes(""); setPicks([]); }, [product]);
 
   if (!product) return null;
+  const bundle = product.bundle;
+  const catId = (slug) => categories.find((c) => c.slug === slug)?.id;
+  const pizzas = bundle ? allProducts.filter((p) => p.category_id === catId("pizzas")) : [];
+  const salads = bundle?.salad ? allProducts.filter((p) => p.category_id === catId("salads")) : [];
+  const slots = bundle ? [...Array(bundle.pizzas).fill("pizza"), ...(bundle.salad ? ["salad"] : [])] : [];
+  const bundleReady = !bundle || slots.every((_, i) => picks[i]);
   const base = product.price + (size?.price || 0);
   const extraSum = extras.reduce((a, e) => a + e.price, 0);
   const unit = base + extraSum;
@@ -26,10 +33,11 @@ export default function ProductModal({ product, onClose }) {
   };
 
   const add = () => {
+    if (!bundleReady) return toast.error("Διάλεξε όλα τα προϊόντα της προσφοράς");
     addItem({
       product_id: product.id, name: product.name, quantity: qty,
       size: size?.label || null, size_price: size?.price || null,
-      extras, notes, unit_price: Number(unit.toFixed(2)), line_total: Number(total.toFixed(2)),
+      extras, choices: picks, notes, unit_price: Number(unit.toFixed(2)), line_total: Number(total.toFixed(2)),
     });
     toast.success(`${product.name} στο καλάθι!`);
     onClose();
@@ -44,6 +52,17 @@ export default function ProductModal({ product, onClose }) {
             <DialogTitle className="font-display text-2xl font-black">{product.name}</DialogTitle>
             {product.description && <p className="text-sm text-slate-500 mt-1">{product.description}</p>}
           </DialogHeader>
+
+          {bundle && slots.map((kind, i) => (
+            <div key={i} data-testid={`bundle-slot-${i}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">{kind === "pizza" ? `Πίτσα ${i + 1}` : "Σαλάτα"} · διάλεξε</div>
+              <select value={picks[i] || ""} onChange={(e) => { const n = [...picks]; n[i] = e.target.value; setPicks(n); }}
+                className={`w-full h-11 border-2 rounded-xl px-3 text-sm font-semibold ${picks[i] ? "border-brand" : "border-slate-200"}`} data-testid={`bundle-select-${i}`}>
+                <option value="">— Επιλογή —</option>
+                {(kind === "pizza" ? pizzas : salads).map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
+            </div>
+          ))}
 
           {product.sizes?.length > 0 && (
             <div>

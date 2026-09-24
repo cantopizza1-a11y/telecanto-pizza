@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
-const empty = { name: "", description: "", image: "", category_id: "", price: 0, sizes: [], extras: [], active: true, popular: false };
+const empty = { name: "", description: "", image: "", category_id: "", price: 0, sizes: [], extras: [], active: true, popular: false, mode: "all", bundle: null };
 
 export default function AdminProducts() {
   const [items, setItems] = useState([]);
@@ -114,6 +114,18 @@ export default function AdminProducts() {
             <div className="flex gap-4">
               <label className="flex items-center gap-2"><Switch checked={f.active} onCheckedChange={(v) => setF({ ...f, active: v })} data-testid="pf-active" /><span className="text-sm">Ενεργό</span></label>
               <label className="flex items-center gap-2"><Switch checked={f.popular} onCheckedChange={(v) => setF({ ...f, popular: v })} data-testid="pf-popular" /><span className="text-sm">Δημοφιλές</span></label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs font-bold uppercase text-slate-500">Διαθέσιμο για
+                <select value={f.mode || "all"} onChange={(e) => setF({ ...f, mode: e.target.value })} className="w-full h-10 border border-slate-200 rounded-lg px-2 mt-1 font-normal normal-case" data-testid="pf-mode">
+                  <option value="all">Delivery & Παραλαβή</option><option value="delivery">Μόνο Delivery</option><option value="pickup">Μόνο Παραλαβή</option>
+                </select></label>
+              <label className="text-xs font-bold uppercase text-slate-500">Πακέτο: επιλογή πιτσών
+                <div className="flex gap-2 mt-1 items-center">
+                  <Input type="number" min="0" value={f.bundle?.pizzas ?? 0} className="w-20" data-testid="pf-bundle-pizzas"
+                    onChange={(e) => { const n = parseInt(e.target.value) || 0; setF({ ...f, bundle: n || f.bundle?.salad ? { pizzas: n, salad: !!f.bundle?.salad } : null }); }} />
+                  <label className="flex items-center gap-1 normal-case font-normal text-sm"><Switch checked={!!f.bundle?.salad} onCheckedChange={(v) => setF({ ...f, bundle: v || f.bundle?.pizzas ? { pizzas: f.bundle?.pizzas || 0, salad: v } : null })} /> + Σαλάτα</label>
+                </div></label>
             </div>
             <Button onClick={save} className="w-full rounded-full bg-brand hover-brand h-11" data-testid="pf-save">Αποθήκευση</Button>
           </div>

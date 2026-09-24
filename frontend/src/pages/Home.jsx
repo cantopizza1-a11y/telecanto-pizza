@@ -34,16 +34,20 @@ export default function Home() {
     setFavs(r.data);
   };
 
+  const visibleCats = useMemo(() => cats.filter((c) => !c.mode || c.mode === "all" || c.mode === mode), [cats, mode]);
+  useEffect(() => { if (visibleCats.length && !visibleCats.find((c) => c.id === active)) setActive(visibleCats[0].id); }, [visibleCats, active]);
+
   const grouped = useMemo(() => {
     const search = q.trim().toLowerCase();
     const map = {};
-    for (const c of cats) map[c.id] = [];
+    for (const c of visibleCats) map[c.id] = [];
     for (const p of prods) {
+      if (p.mode && p.mode !== "all" && p.mode !== mode) continue;
       if (search && !(p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search))) continue;
       if (map[p.category_id]) map[p.category_id].push(p);
     }
     return map;
-  }, [prods, cats, q]);
+  }, [prods, visibleCats, q, mode]);
 
   const popular = prods.filter((p) => p.popular).slice(0, 6);
 
@@ -104,7 +108,7 @@ export default function Home() {
       </section>
 
       <main className="max-w-6xl mx-auto px-4 pb-24">
-        <CategoryRail categories={cats} active={active} onSelect={(id) => {
+        <CategoryRail categories={visibleCats} active={active} onSelect={(id) => {
           setActive(id);
           document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
         }} />
@@ -122,7 +126,7 @@ export default function Home() {
           </section>
         )}
 
-        {cats.map((c) => {
+        {visibleCats.map((c) => {
           const list = grouped[c.id] || [];
           if (list.length === 0) return null;
           return (
@@ -139,7 +143,7 @@ export default function Home() {
         })}
       </main>
 
-      <ProductModal product={openProd} onClose={() => setOpenProd(null)} />
+      <ProductModal product={openProd} onClose={() => setOpenProd(null)} allProducts={prods} categories={cats} />
       <StickyCartBar />
     </div>
   );
