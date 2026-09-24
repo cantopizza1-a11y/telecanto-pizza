@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { http, formatEuro, STATUS_LABELS, STATUS_COLORS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Printer, Volume2, VolumeX } from "lucide-react";
-import { playNewOrderSound, soundEnabled, setSoundEnabled, unlockAudio } from "@/lib/sound";
+import { Printer, Volume2, VolumeX, BellRing, Check } from "lucide-react";
+import { playNewOrderSound, soundEnabled, setSoundEnabled, unlockAudio, startAlarm, stopAlarm, alarmActive } from "@/lib/sound";
 
 const FLOW = ["new", "confirmed", "preparing", "ready", "delivering", "completed"];
 
@@ -12,30 +12,34 @@ export default function AdminOrders() {
   const seenIds = useRef(new Set());
   const [newCount, setNewCount] = useState(0);
   const [sound, setSound] = useState(soundEnabled());
-  const toggleSound = () => { const on = !sound; setSound(on); setSoundEnabled(on); if (on) { unlockAudio(); playNewOrderSound(); } };
+  const toggleSound = () => { const on = !sound; setSound(on); setSoundEnabled(on); if (on) { unlockAudio(); playNewOrderSound(); } else stopAlarm(); };
 
   const load = () => http.get("/admin/orders").then((r) => {
     const fresh = r.data.filter((o) => o.status === "new" && !seenIds.current.has(o.id));
     r.data.forEach((o) => seenIds.current.add(o.id));
-    if (fresh.length > 0 && seenIds.current.size > fresh.length) {
-      setNewCount((c) => c + fresh.length);
-      playNewOrderSound();
-    }
+    if (fresh.length > 0 && seenIds.current.size > fresh.length) setNewCount((c) => c + fresh.length);
     setOrders(r.data);
   });
 
+  const pending = orders.filter((o) => o.status === "new");
+  useEffect(() => {
+    if (pending.length > 0 && sound) startAlarm(); else stopAlarm();
+  }, [pending.length, sound]);
+  useEffect(() => () => stopAlarm(), []);
+
   useEffect(() => {
     load(); const i = setInterval(load, 8000);
-    const unlock = () => unlockAudio();
+    const unlock = () => { unlockAudio(); if (alarmActive()) playNewOrderSound(); };
     window.addEventListener("pointerdown", unlock, { once: true });
     return () => { clearInterval(i); window.removeEventListener("pointerdown", unlock); };
   }, []);
 
   const setStatus = async (id, status) => {
     await http.put(`/admin/orders/${id}/status`, { status });
-    load();
+    await load();
     if (sel?.id === id) setSel((s) => ({ ...s, status }));
   };
+  const accept = (o) => { unlockAudio(); setStatus(o.id, "confirmed"); };
 
   return (
     <div className="space-y-4">
@@ -54,6 +58,12 @@ export default function AdminOrders() {
         )}
         </div>
       </div>
+      {pending.length > 0 && (
+        <div className="bg-red-600 text-white rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 new-order-pulse" data-testid="pending-alarm-bar">
+          <BellRing className="w-6 h-6 shrink-0" />
+          <div className="flex-1 font-bold">{pending.length} {pending.length === 1 ? "νέα παραγγελία περιμένει" : "νέες παραγγελίες περιμένουν"} αποδοχή — ο ήχος σταματά μόλις τις αποδεχτείτε.</div>
+        </div>
+      )}
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-2 max-h-[75vh] overflow-y-auto">
           {orders.length === 0 && <p className="text-slate-500 text-sm">Καμία παραγγελία ακόμη.</p>}
@@ -69,6 +79,12 @@ export default function AdminOrders() {
                 <div className="text-right">
                   <div className={`inline-block text-xs px-2 py-1 rounded-full border ${STATUS_COLORS[o.status]}`}>{STATUS_LABELS[o.status]}</div>
                   <div className="font-bold text-brand mt-1">{formatEuro(o.total)}</div>
+                  {o.status === "new" && (
+                    <span role="button" onClick={(e) => { e.stopPropagation(); accept(o); }} data-testid={`accept-${o.id}`}
+                      className="mt-2 inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                      <Check className="w-3 h-3" /> Αποδοχή
+                    </span>
+                  )}
                 </div>
               </div>
             </button>
@@ -97,6 +113,10 @@ export default function AdminOrders() {
             <Button variant="outline" size="sm" onClick={() => window.open(`/admin/print/${sel.id}`, "_blank", "width=420,height=700")}
               className="mt-3 w-full rounded-full gap-2 font-bold" data-testid="print-ticket-btn"><Printer className="w-4 h-4" /> Εκτύπωση ticket</Button>
             <div className="mt-4 space-y-2">
+              {sel.status === "new" && (
+                <Button onClick={() => accept(sel)} data-testid="accept-order-btn"
+                  className="w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base h-12 gap-2"><Check className="w-5 h-5" /> Αποδοχή παραγγελίας</Button>
+              )}
               <div className="text-xs font-bold uppercase text-slate-500">Κατάσταση</div>
               <div className="flex flex-wrap gap-1">
                 {FLOW.map((s) => (
