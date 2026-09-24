@@ -35,19 +35,19 @@ export default function Home() {
     setFavs(r.data);
   };
 
-  const visibleCats = cats;
+  const lentCat = cats.find((c) => c.slug === "lent");
+  const visibleCats = veganOnly && lentCat ? [lentCat] : cats;
 
   const grouped = useMemo(() => {
     const search = q.trim().toLowerCase();
     const map = {};
     for (const c of visibleCats) map[c.id] = [];
     for (const p of prods) {
-      if (veganOnly && !(p.tags || []).includes("νηστίσιμο")) continue;
       if (search && !(p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search))) continue;
       if (map[p.category_id]) map[p.category_id].push(p);
     }
     return map;
-  }, [prods, visibleCats, q, veganOnly]);
+  }, [prods, visibleCats, q]);
 
   const popular = prods.filter((p) => p.popular).slice(0, 6);
 
@@ -108,7 +108,7 @@ export default function Home() {
             <button onClick={() => setVeganOnly((v) => !v)} data-testid="vegan-filter-btn"
               className={`h-12 px-4 rounded-2xl border-2 font-bold text-sm flex items-center gap-2 whitespace-nowrap transition-colors ${
                 veganOnly ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-slate-200 text-slate-700 hover:border-emerald-400"}`}>
-              <Leaf className="w-4 h-4" /><span className="hidden sm:inline">Μόνο νηστίσιμα / vegan</span><span className="sm:hidden">Vegan</span>
+              <Leaf className="w-4 h-4" /><span className="hidden sm:inline">Νηστίσιμο Μενού</span><span className="sm:hidden">Νηστίσιμα</span>
             </button>
           </div>
         </div>
