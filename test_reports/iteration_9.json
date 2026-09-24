@@ -1,0 +1,37 @@
+{
+  "summary": "Tested the new store_new_order email + explicit price breakdown (Υποσύνολο προϊόντων / Κόστος delivery or Παραλαβή από το κατάστημα / Σύνολο) across backend and frontend. Backend: created 3 pytest cases in /app/backend/tests/test_store_email_and_breakdown.py — delivery order (Ζώνη 1, item 7,50€) returns subtotal=7.50, delivery_fee overridden to zone fee (0.50€), total=8.00€ and within ~8s /api/admin/orders/{id}/notifications contains event=store_new_order ok=true to=cantopizza1@gmail.com; pickup order returns delivery_fee=0.00, total=subtotal and store notification ok=true; public GET /api/orders/{id} exposes subtotal, delivery_fee, total, mode. 3/3 passed (see /app/test_reports/pytest/store_email.xml). Frontend: Cart delivery shows 'Υποσύνολο προϊόντων 7,50€' and cart-delivery-note 'Κόστος delivery — από +0,50€ (ανά ζώνη)'; Cart pickup shows 'Παραλαβή από το κατάστημα 0,00€' plus 'Σύνολο 7,50€'; Checkout delivery with zone shows checkout-delivery-fee 'Κόστος delivery (Ζώνη 1 - Κέντρο Βόλου)  +0,50€' and Σύνολο 8,00€; Checkout pickup shows 'Παραλαβή από το κατάστημα 0,00€'. Placed a real delivery order (id 3b82ccef, cantopizza1@gmail.com) — /order/{id} shows 'Υποσύνολο προϊόντων 7,50€', confirm-delivery-fee 'Κόστος delivery +0,50€', 'Σύνολο 8,00€'. Admin order detail panel shows the same three rows; /admin/print/{id} thermal ticket shows 'Υποσύνολο προϊόντων 7,50€ / Κόστος delivery +0,50€ / ΣΥΝΟΛΟ 8,00€'. All non-terminal TEST_ orders were cancelled at the end (2 orders cancelled). Feature is complete and behaves per spec.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "mailer.py::build_email line 96", "issue": "Payment-method label inside customer email still uses a doubled-brace f-string escape ('{{\"cash\": \"Μετρητά\", ...}}.get(order.get(\"payment_method\"), ...)'), so recipients see the literal dict expression instead of 'Μετρητά' / 'Κάρτα στο κατάστημα' / 'IRIS'. Same issue was reported in iteration 8 and is still present. Fix: extract `pay = {\"cash\":\"Μετρητά\",\"card_pos\":\"Κάρτα στο κατάστημα\",\"iris\":\"IRIS\"}.get(order.get('payment_method'), order.get('payment_method',''))` before the f-string and use `{pay}` (mailer.py:46 already does this correctly for the store email; only build_email is affected)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_store_email_and_breakdown.py",
+    "/app/test_reports/pytest/store_email.xml"
+  ],
+  "action_items": [
+    "Fix mailer.py build_email line 96 (customer email) — replace doubled-brace f-string with a pre-computed `pay` label so the payment method renders as 'Μετρητά' / 'Κάρτα στο κατάστημα' / 'IRIS' instead of the literal Python dict expression."
+  ],
+  "critical_code_review_comments": [
+    "server.py create_order: fetches zone by name and overrides client-supplied delivery_fee — good defence in depth. However for pickup+empty area the zones lookup is skipped correctly.",
+    "server.py _notify_store opens a fresh AsyncIOMotorClient via asyncio.run(_log_notification(...)) for every order — same connection-churn pattern flagged in iteration 8 for _notify. Consider a single background queue.",
+    "Cart.jsx uses zones/GET/min fee only to show 'από +X€' hint; it silently swallows errors — OK for UX but 4xx logs will be invisible in dev.",
+    "Checkout.jsx select-zone renders <option> containing a text expression that dev-preview wraps into a <span> (React hydration warning in console). Not a real bug in production build but pollutes the console (visible in every session)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_store_email_and_breakdown.py"
+  ],
+  "success_rate": {"backend": "100% (3/3 pytest)", "frontend": "100% — Cart delivery, Cart pickup, Checkout delivery, Checkout pickup, OrderConfirm, admin order detail, and print ticket all show the requested breakdown"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! (from /app/memory/test_credentials.md). Customer email for outbound mails: cantopizza1@gmail.com (as instructed).",
+  "seed_data_creation": "3 TEST_ orders created by pytest + 1 TEST_ order via UI (id 3b82ccef). Any that remained in a non-terminal state (2) were cancelled at the end — no pending alarm remains in admin.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "New price-breakdown UI + store email are working end-to-end. The only outstanding defect is the same mailer.py build_email f-string bug flagged in iteration 8 — still not fixed. Do not re-verify by hand: it only affects the customer email body's payment-method label.",
+  "rca of the issue": "N/A — no critical bugs found. Minor mailer bug RCA: mailer.py:96 has `{{\"cash\": \"Μετρητά\", ...}}.get(...)` inside an f-string; the doubled braces are the f-string escape for a literal `{`, so Python inserts the literal characters into the output HTML instead of evaluating the dict. Mitigation: pre-compute the label outside the f-string (as already done on line 54)."
+}
