@@ -4,10 +4,12 @@ import { formatEuro } from "@/lib/api";
 import { Trash2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
+import { useOffers } from "@/hooks/useOffers";
 
 export default function Cart() {
-  const { items, subtotal, updateQty, removeItem } = useCart();
+  const { items, subtotal, updateQty, removeItem, mode, coupon } = useCart();
   const nav = useNavigate();
+  const offers = useOffers(items, mode, coupon);
   return (
     <div className="min-h-screen">
       <Header />
@@ -43,6 +45,7 @@ export default function Cart() {
             </div>
             <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-4">
               <div className="flex justify-between text-slate-600"><span>Υποσύνολο</span><span>{formatEuro(subtotal)}</span></div>
+              {offers.discount > 0 && <div className="flex justify-between text-emerald-700 font-semibold" data-testid="cart-discount"><span>Προσφορές</span><span>-{formatEuro(offers.discount)}</span></div>}
               <Button onClick={() => nav("/checkout")} data-testid="checkout-btn"
                 className="w-full rounded-full bg-brand hover-brand h-12 mt-3 font-bold text-base">Ολοκλήρωση Παραγγελίας</Button>
             </div>

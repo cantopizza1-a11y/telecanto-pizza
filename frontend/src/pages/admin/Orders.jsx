@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { http, formatEuro, STATUS_LABELS, STATUS_COLORS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 
 const FLOW = ["new", "confirmed", "preparing", "ready", "delivering", "completed"];
 
@@ -15,7 +16,7 @@ export default function AdminOrders() {
     r.data.forEach((o) => seenIds.current.add(o.id));
     if (fresh.length > 0 && seenIds.current.size > fresh.length) {
       setNewCount((c) => c + fresh.length);
-      try { new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=").play(); } catch {}
+      try { new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=").play().catch(() => {}); } catch { /* autoplay blocked */ }
     }
     setOrders(r.data);
   });
@@ -66,6 +67,7 @@ export default function AdminOrders() {
             <div className="text-sm text-slate-600">{sel.customer_phone}</div>
             {sel.mode === "delivery" && <div className="text-sm mt-1">{sel.address} {sel.address_number} · {sel.area} {sel.floor && `· Όροφος ${sel.floor}`}</div>}
             {sel.notes && <div className="text-xs italic text-slate-500 mt-1">{sel.notes}</div>}
+            {sel.scheduled_for && <div className="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mt-2 inline-block" data-testid="order-scheduled">Προγραμματισμένη: {new Date(sel.scheduled_for).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" })}</div>}
             <div className="mt-3 space-y-1 text-sm border-t pt-3">
               {sel.items.map((it, i) => (
                 <div key={i} className="flex justify-between">
@@ -73,10 +75,13 @@ export default function AdminOrders() {
                   <span>{formatEuro(it.line_total)}</span>
                 </div>
               ))}
+              {sel.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Έκπτωση {sel.applied_offers?.map((a) => a.title).join(", ")}</span><span>-{formatEuro(sel.discount)}</span></div>}
               <div className="flex justify-between pt-2 border-t"><span>Delivery</span><span>{formatEuro(sel.delivery_fee)}</span></div>
               <div className="flex justify-between font-black text-brand text-lg"><span>Σύνολο</span><span>{formatEuro(sel.total)}</span></div>
               <div className="text-xs text-slate-500">Πληρωμή: {sel.payment_method === "cash" ? "Μετρητά" : "IRIS"}</div>
             </div>
+            <Button variant="outline" size="sm" onClick={() => window.open(`/admin/print/${sel.id}`, "_blank", "width=420,height=700")}
+              className="mt-3 w-full rounded-full gap-2 font-bold" data-testid="print-ticket-btn"><Printer className="w-4 h-4" /> Εκτύπωση ticket</Button>
             <div className="mt-4 space-y-2">
               <div className="text-xs font-bold uppercase text-slate-500">Κατάσταση</div>
               <div className="flex flex-wrap gap-1">

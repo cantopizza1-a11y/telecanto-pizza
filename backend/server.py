@@ -97,6 +97,7 @@ class OrderItemIn(BaseModel):
 class OrderIn(BaseModel):
     items: List[OrderItemIn]
     mode: str  # delivery | pickup
+    coupon_code: Optional[str] = ""
     customer_name: str; customer_phone: str
     address: Optional[str] = ""; area: Optional[str] = ""
     address_number: Optional[str] = ""; floor: Optional[str] = ""; notes: Optional[str] = ""
@@ -106,6 +107,60 @@ class OrderIn(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: str
+
+class OfferIn(BaseModel):
+    title: str; description: str = ""
+    type: str  # bogo | percent | fixed | combo
+    value: float = 0  # percent % or fixed € or combo price
+    product_ids: List[str] = []; category_ids: List[str] = []
+    combo_items: List[dict] = []  # [{product_id, name, qty}]
+    code: Optional[str] = ""; min_order: float = 0
+    mode: str = "all"  # all | delivery | pickup
+    active: bool = True; image: Optional[str] = ""
+
+class ApplyIn(BaseModel):
+    items: List[OrderItemIn]; mode: str = "delivery"; code: Optional[str] = ""
+
+def _eligible(offer: dict, it: dict, prod_cat: dict) -> bool:
+    pids, cids = offer.get("product_ids") or [], offer.get("category_ids") or []
+    if not pids and not cids: return True
+    return it["product_id"] in pids or prod_cat.get(it["product_id"]) in cids
+
+def compute_offers(offers: List[dict], items: List[dict], mode: str, code: str, prod_cat: dict):
+    code = (code or "").strip().upper()
+    subtotal = sum(i["line_total"] for i in items)
+    applied, total_disc = [], 0.0
+    for o in offers:
+        if o.get("mode", "all") not in ("all", mode): continue
+        if o.get("code") and o["code"].strip().upper() != code: continue
+        if subtotal < float(o.get("min_order") or 0): continue
+        disc = 0.0; t = o["type"]
+        if t == "percent":
+            disc = sum(i["line_total"] for i in items if _eligible(o, i, prod_cat)) * float(o["value"]) / 100
+        elif t == "fixed":
+            disc = min(float(o["value"]), subtotal)
+        elif t == "bogo":
+            units = sorted([i["unit_price"] for i in items if _eligible(o, i, prod_cat) for _ in range(i["quantity"])], reverse=True)
+            disc = sum(units[1::2])
+        elif t == "combo":
+            need = o.get("combo_items") or []
+            if need:
+                have = {}
+                for i in items: have[i["product_id"]] = have.get(i["product_id"], 0) + i["quantity"]
+                n = min((have.get(c["product_id"], 0) // max(1, int(c.get("qty", 1)))) for c in need)
+                if n > 0:
+                    price_of = {}
+                    for i in items: price_of.setdefault(i["product_id"], i["unit_price"])
+                    regular = sum(price_of.get(c["product_id"], 0) * int(c.get("qty", 1)) for c in need)
+                    disc = max(0.0, (regular - float(o["value"])) * n)
+        disc = round(disc, 2)
+        if disc > 0:
+            applied.append({"id": o["id"], "title": o["title"], "type": t, "discount": disc}); total_disc += disc
+    total_disc = round(min(total_disc, subtotal), 2)
+    return {"discount": total_disc, "applied": applied, "code_valid": bool(code) and any(o.get("code", "").strip().upper() == code for o in offers)}
+
+async def _prod_cat_map():
+    return {p["id"]: p["category_id"] async for p in db.products.find({}, {"id": 1, "category_id": 1})}
 
 class ZoneIn(BaseModel):
     name: str; fee: float; min_order: float = 0; active: bool = True
@@ -229,7 +284,23 @@ async def create_order(data: OrderIn, request: Request):
     settings = await db.settings.find_one({"_id": "main"}) or {}
     if not settings.get("store_open", True):
         raise HTTPException(400, "Το κατάστημα είναι κλειστό")
+    if data.scheduled_for:
+        if not settings.get("scheduled_enabled", True):
+            raise HTTPException(400, "Οι προγραμματισμένες παραγγελίες δεν είναι διαθέσιμες")
+        try:
+            sched = datetime.fromisoformat(data.scheduled_for)
+            if sched.tzinfo is None: sched = sched.replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(400, "Μη έγκυρη ώρα")
+        if sched < datetime.now(timezone.utc) + timedelta(minutes=25):
+            raise HTTPException(400, "Η ώρα παράδοσης πρέπει να είναι τουλάχιστον 30' μετά")
     order = data.model_dump()
+    items = [i.model_dump() for i in data.items]
+    offers = await db.offers.find({"active": True}).to_list(200)
+    res = compute_offers(offers, items, data.mode, data.coupon_code, await _prod_cat_map())
+    order["subtotal"] = round(sum(i["line_total"] for i in items), 2)
+    order["discount"] = res["discount"]; order["applied_offers"] = res["applied"]
+    order["total"] = round(order["subtotal"] - res["discount"] + order["delivery_fee"], 2)
     order.update({"id": uid(), "user_id": u["id"] if u else None,
                   "status": "new", "payment_status": "pending",
                   "created_at": now_iso()})
@@ -253,6 +324,12 @@ async def admin_orders(admin=Depends(require_admin), status: Optional[str] = Non
     if status: q["status"] = status
     rows = await db.orders.find(q).sort("created_at", -1).to_list(500)
     return [clean(r) for r in rows]
+
+@api.get("/admin/orders/{oid}")
+async def admin_order(oid: str, admin=Depends(require_admin)):
+    o = await db.orders.find_one({"id": oid})
+    if not o: raise HTTPException(404, "Not found")
+    return clean(o)
 
 @api.put("/admin/orders/{oid}/status")
 async def update_status(oid: str, data: StatusUpdate, admin=Depends(require_admin)):
@@ -334,6 +411,40 @@ async def update_settings(data: SettingsIn, admin=Depends(require_admin)):
     payload = {k: v for k, v in data.model_dump().items() if v is not None}
     await db.settings.update_one({"_id": "main"}, {"$set": payload}, upsert=True)
     s = await db.settings.find_one({"_id": "main"}); s.pop("_id", None); return s
+
+# ---------- offers ----------
+@api.get("/offers")
+async def list_offers():
+    rows = await db.offers.find({"active": True, "code": {"$in": ["", None]}}).to_list(100)
+    return [clean(r) for r in rows]
+
+@api.post("/offers/apply")
+async def apply_offers(data: ApplyIn):
+    offers = await db.offers.find({"active": True}).to_list(200)
+    items = [i.model_dump() for i in data.items]
+    return compute_offers(offers, items, data.mode, data.code, await _prod_cat_map())
+
+@api.get("/admin/offers")
+async def admin_offers(admin=Depends(require_admin)):
+    rows = await db.offers.find().sort("created_at", -1).to_list(200)
+    return [clean(r) for r in rows]
+
+@api.post("/admin/offers")
+async def create_offer(data: OfferIn, admin=Depends(require_admin)):
+    doc = data.model_dump(); doc["id"] = uid(); doc["created_at"] = now_iso()
+    doc["code"] = (doc.get("code") or "").strip().upper()
+    await db.offers.insert_one(doc); return clean(doc)
+
+@api.put("/admin/offers/{oid}")
+async def update_offer(oid: str, data: dict, admin=Depends(require_admin)):
+    data.pop("id", None); data.pop("_id", None)
+    if "code" in data: data["code"] = (data.get("code") or "").strip().upper()
+    await db.offers.update_one({"id": oid}, {"$set": data})
+    return clean(await db.offers.find_one({"id": oid}))
+
+@api.delete("/admin/offers/{oid}")
+async def delete_offer(oid: str, admin=Depends(require_admin)):
+    await db.offers.delete_one({"id": oid}); return {"ok": True}
 
 # ---------- favorites ----------
 @api.get("/favorites")

@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import Logo from "@/components/Logo";
-import { LayoutDashboard, Package, ListOrdered, MapPin, Settings, LogOut, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Package, ListOrdered, MapPin, Settings, LogOut, ClipboardList, Tag } from "lucide-react";
 
 export default function AdminLayout() {
   const { user, loading, logout } = useAuth();
@@ -16,6 +16,7 @@ export default function AdminLayout() {
     { to: "/admin/orders", label: "Παραγγελίες", icon: ClipboardList },
     { to: "/admin/products", label: "Προϊόντα", icon: Package },
     { to: "/admin/categories", label: "Κατηγορίες", icon: ListOrdered },
+    { to: "/admin/offers", label: "Προσφορές", icon: Tag },
     { to: "/admin/zones", label: "Ζώνες Delivery", icon: MapPin },
     { to: "/admin/settings", label: "Ρυθμίσεις", icon: Settings },
   ];

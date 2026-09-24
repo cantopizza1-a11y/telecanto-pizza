@@ -16,6 +16,8 @@ import AdminProducts from "@/pages/admin/Products";
 import AdminCategories from "@/pages/admin/Categories";
 import AdminZones from "@/pages/admin/Zones";
 import AdminSettings from "@/pages/admin/Settings";
+import AdminOffers from "@/pages/admin/Offers";
+import PrintTicket from "@/pages/admin/PrintTicket";
 
 export default function App() {
   return (
@@ -30,11 +32,13 @@ export default function App() {
             <Route path="/order/:id" element={<OrderConfirm />} />
             <Route path="/login" element={<Login />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/admin/print/:id" element={<PrintTicket />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="categories" element={<AdminCategories />} />
+              <Route path="offers" element={<AdminOffers />} />
               <Route path="zones" element={<AdminZones />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>

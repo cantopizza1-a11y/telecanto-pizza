@@ -10,9 +10,14 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Truck, Store, Banknote, QrCode } from "lucide-react";
+import CouponBox from "@/components/CouponBox";
+import SchedulePicker from "@/components/SchedulePicker";
+import { useOffers } from "@/hooks/useOffers";
 
 export default function Checkout() {
-  const { items, subtotal, clear, mode, setMode } = useCart();
+  const { items, subtotal, clear, mode, setMode, coupon } = useCart();
+  const [scheduledFor, setScheduledFor] = useState(null);
+  const offers = useOffers(items, mode, coupon);
   const { user } = useAuth();
   const nav = useNavigate();
   const [zones, setZones] = useState([]);
@@ -34,18 +39,21 @@ export default function Checkout() {
 
   const zone = zones.find((z) => z.id === zoneId);
   const deliveryFee = mode === "delivery" ? (zone?.fee || 0) : 0;
-  const total = subtotal + deliveryFee;
+  const discount = offers.discount || 0;
+  const total = Math.max(0, subtotal - discount) + deliveryFee;
 
   const submit = async () => {
     if (!form.name || !form.phone) return toast.error("Συμπλήρωσε όνομα & τηλέφωνο");
     if (mode === "delivery" && (!form.address || !zoneId)) return toast.error("Συμπλήρωσε διεύθυνση & ζώνη");
+    if (scheduledFor && new Date(scheduledFor).getTime() < Date.now() + 25 * 60000) return toast.error("Η ώρα πρέπει να είναι τουλάχιστον 30' μετά");
     setSubmitting(true);
     try {
       const { data } = await http.post("/orders", {
         items, mode, customer_name: form.name, customer_phone: form.phone,
         address: form.address, area: zone?.name || form.area,
         address_number: form.address_number, floor: form.floor, notes: form.notes,
-        payment_method: payment, subtotal, delivery_fee: deliveryFee, total,
+        payment_method: payment, subtotal, delivery_fee: deliveryFee, discount, total,
+        coupon_code: coupon || "", scheduled_for: scheduledFor ? new Date(scheduledFor).toISOString() : null,
       });
       clear();
       nav(`/order/${data.id}`);
@@ -108,6 +116,8 @@ export default function Checkout() {
           </div>
         )}
 
+        {settings.scheduled_enabled !== false && <SchedulePicker value={scheduledFor} onChange={setScheduledFor} />}
+
         {/* Payment */}
         <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 mt-3">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">4. Πληρωμή</div>
@@ -132,7 +142,11 @@ export default function Checkout() {
 
         {/* Totals */}
         <div className="bg-white border border-slate-200 rounded-2xl p-4 mt-3 space-y-2">
+          <CouponBox codeValid={offers.code_valid} />
           <div className="flex justify-between text-sm"><span>Υποσύνολο</span><span>{formatEuro(subtotal)}</span></div>
+          {offers.applied?.map((a) => (
+            <div key={a.id} className="flex justify-between text-sm text-emerald-700 font-semibold" data-testid={`applied-offer-${a.id}`}><span>{a.title}</span><span>-{formatEuro(a.discount)}</span></div>
+          ))}
           {mode === "delivery" && <div className="flex justify-between text-sm"><span>Delivery</span><span>{formatEuro(deliveryFee)}</span></div>}
           <div className="flex justify-between font-display font-black text-xl pt-2 border-t border-slate-100"><span>Σύνολο</span><span className="text-brand">{formatEuro(total)}</span></div>
           <Button disabled={submitting} onClick={submit} data-testid="submit-order-btn"

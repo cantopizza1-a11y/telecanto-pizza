@@ -8,6 +8,8 @@ export function CartProvider({ children }) {
     try { return JSON.parse(localStorage.getItem("tc_cart") || "[]"); } catch { return []; }
   });
   const [mode, setMode] = useState(() => localStorage.getItem("tc_mode") || "delivery");
+  const [coupon, setCoupon] = useState(() => localStorage.getItem("tc_coupon") || "");
+  useEffect(() => localStorage.setItem("tc_coupon", coupon), [coupon]);
 
   useEffect(() => localStorage.setItem("tc_cart", JSON.stringify(items)), [items]);
   useEffect(() => localStorage.setItem("tc_mode", mode), [mode]);
@@ -15,10 +17,10 @@ export function CartProvider({ children }) {
   const addItem = (it) => setItems((s) => [...s, { ...it, key: Date.now() + Math.random() }]);
   const removeItem = (key) => setItems((s) => s.filter((x) => x.key !== key));
   const updateQty = (key, q) => setItems((s) => s.map((x) => x.key === key ? { ...x, quantity: Math.max(1, q), line_total: (x.unit_price * Math.max(1, q)) } : x));
-  const clear = () => setItems([]);
+  const clear = () => { setItems([]); setCoupon(""); };
 
   const subtotal = items.reduce((a, x) => a + x.line_total, 0);
   const count = items.reduce((a, x) => a + x.quantity, 0);
 
-  return <Ctx.Provider value={{ items, addItem, removeItem, updateQty, clear, subtotal, count, mode, setMode }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ items, addItem, removeItem, updateQty, clear, subtotal, count, mode, setMode, coupon, setCoupon }}>{children}</Ctx.Provider>;
 }

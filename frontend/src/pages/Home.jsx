@@ -5,6 +5,7 @@ import CategoryRail from "@/components/CategoryRail";
 import ProductCard from "@/components/ProductCard";
 import ProductModal from "@/components/ProductModal";
 import StickyCartBar from "@/components/StickyCartBar";
+import OffersStrip from "@/components/OffersStrip";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Truck, Store, Search, MapPin, Phone, Clock } from "lucide-react";
@@ -108,6 +109,7 @@ export default function Home() {
           document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
         }} />
 
+        {!q && <OffersStrip />}
         {popular.length > 0 && !q && (
           <section className="mt-6">
             <h2 className="font-display text-2xl font-black mb-3">Δημοφιλή</h2>

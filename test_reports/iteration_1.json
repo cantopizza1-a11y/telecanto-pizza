@@ -1,0 +1,35 @@
+{
+  "summary": "First E2E MVP test of Telecanto Pizza. Backend: 19/19 tests pass (categories/products seeded, auth, admin+customer orders, loyalty, admin CRUD for products/categories/zones, dashboard KPIs, store_open=false blocks orders and is restored). Frontend: home renders 61 products across 8 category sections; product modal opens with sizes; qty +/-; add-to-cart works; sticky cart bar appears on mobile; navigation to /cart -> /checkout works; guest delivery checkout (zone select + address) creates order and redirects to /order/:id; admin login redirects to /admin with populated KPIs (Orders=4, Sales=57€); orders list loads real orders and detail panel shows items; settings save works. One UI blocker discovered on /admin/orders (status change buttons blocked by overlay caused by an unhandled promise rejection from Audio.play).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "admin/Orders.jsx (audio notification)", "issue": "new Audio(...).play() returns a Promise that rejects on autoplay-blocked pages; the try/catch around it does NOT catch async rejections, so an 'Unhandled rejection: play() failed because the user didn\u2019t interact with the document first' bubbles up and the Emergent dev overlay (data-emergent-overlay-host) covers the page and intercepts pointer events, blocking clicks on status-* buttons. Fix: `new Audio(...).play().catch(()=>{})` (or ensure a user gesture before playing).", "selector": "[data-testid^='status-']", "priority": "HIGH"},
+      {"component": "Checkout.jsx select-zone options", "issue": "React hydration warning: <span> as child of <option> (originates from x-tool instrumentation on <option> children). Cosmetic console warning, no functional impact.", "selector": "[data-testid='select-zone'] option", "priority": "LOW"},
+      {"component": "ProductModal / Dialog", "issue": "a11y warning: 'Missing Description or aria-describedby for DialogContent'. Add a DialogDescription or aria-describedby.", "selector": "[data-testid='product-modal']", "priority": "LOW"},
+      {"component": "admin/Dashboard chart", "issue": "Recharts ResponsiveContainer prints width(-1)/height(-1) warnings on initial mount; chart still renders. Set minWidth/minHeight or an explicit aspect.", "selector": ".recharts-responsive-container", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "In /app/frontend/src/pages/admin/Orders.jsx replace `try { new Audio(...).play(); } catch {}` with `new Audio(...).play().catch(()=>{})` so the promise rejection is handled and the Emergent overlay stops intercepting clicks on status buttons.",
+    "(Optional) Add DialogDescription/aria-describedby on ProductModal and admin/Products form Dialog to remove a11y warning.",
+    "(Optional) Fix option<span> hydration warning (likely from tool instrumentation; not code-level)."
+  ],
+  "critical_code_review_comments": [
+    "server.py: dashboard uses ISO string comparison for date filtering ({\"$gte\": today}) which happens to work because created_at is stored as ISO timestamp; brittle but functional.",
+    "server.py: loyalty points awarded from raw order total including delivery_fee \u2014 verify if desired.",
+    "server.py: /api/settings creates default doc on GET (side effect on read); acceptable but consider seeding once at startup instead.",
+    "CORS allow_origins default is '*' together with allow_credentials=True which browsers reject; ensure CORS_ORIGINS is set to explicit origins in prod.",
+    "Frontend Orders.jsx audio autoplay: unhandled promise rejection issue described above."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "~90% (status button click blocked by overlay)"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! (verified working)",
+  "seed_data_creation": "None persistent; created and deleted TEST_ products/zones/categories in CRUD tests; created a few guest+customer orders which remain (needed for admin/dashboard verification).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend suite lives at /app/backend/tests/backend_test.py (pytest, 19 tests, all passing). Frontend needs re-test on admin Orders status buttons after audio-catch fix. Note: on the mobile viewport (390px) the sticky-cart-bar is the only way to reach /cart from Home; on desktop that bar is hidden (sm:hidden) \u2014 use header cart icon or navigate directly to /cart.",
+  "rca of the issue": "Orders.jsx runs `new Audio(dataUri).play()` inside `.then` of an API poll (no prior user gesture). The .play() Promise rejects (NotAllowedError). The surrounding synchronous try/catch cannot catch async rejection => unhandled rejection => Emergent dev-overlay opens `data-emergent-overlay-host` which intercepts pointer events site-wide. Playwright then times out trying to click status-preparing. Fix by attaching .catch(()=>{}) to the play() Promise (or gating audio behind a user interaction)."
+}
