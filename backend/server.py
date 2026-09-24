@@ -34,7 +34,7 @@ def hash_pw(pw: str) -> str:
 
 def check_pw(pw: str, h: str) -> bool:
     try: return bcrypt.checkpw(pw.encode(), h.encode())
-    except: return False
+    except Exception: return False
 
 def make_token(uid_: str, email: str, role: str, days: int = 7) -> str:
     return jwt.encode({"sub": uid_, "email": email, "role": role,
