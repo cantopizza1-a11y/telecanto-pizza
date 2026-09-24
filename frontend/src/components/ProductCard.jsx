@@ -7,15 +7,17 @@ export default function ProductCard({ product, onOpen, isFav, onToggleFav }) {
       className="text-left bg-white rounded-2xl border border-slate-200 p-3 flex gap-3 card-hover w-full">
       <div className="flex-1 min-w-0">
         <div className="font-display font-bold text-slate-900 text-base line-clamp-2 leading-tight">{product.name}</div>
-        {(product.tags || []).length > 0 && (
-          <div className="flex gap-1 mt-1">
-            {product.tags.map((t) => (
+        {(product.tags || []).length > 0 || (product.mode && product.mode !== "all") ? (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {product.mode === "delivery" && <span data-testid="mode-badge-delivery" className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-accent text-brand">Μόνο Delivery</span>}
+            {product.mode === "pickup" && <span data-testid="mode-badge-pickup" className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700">Μόνο Παραλαβή</span>}
+            {(product.tags || []).map((t) => (
               <span key={t} data-testid={`tag-${t}`} className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${t === "spicy" ? "bg-red-50 text-red-700" : t === "new" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                 {{ "νηστίσιμο": "Νηστίσιμο", vegan: "Vegan", spicy: "Καυτερό", new: "Νέο" }[t] || t}
               </span>
             ))}
           </div>
-        )}
+        ) : null}
         {product.description && <div className="text-sm text-slate-500 line-clamp-2 mt-1">{product.description}</div>}
         <div className="mt-3 flex items-center justify-between">
           <span className="text-brand font-display font-black text-lg">{formatEuro(product.price)}</span>

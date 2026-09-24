@@ -7,7 +7,7 @@ import { formatEuro } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function ProductModal({ product, onClose, allProducts = [], categories = [] }) {
-  const { addItem } = useCart();
+  const { addItem, mode, setMode } = useCart();
   const [size, setSize] = useState(product?.sizes?.[0] || null);
   const [extras, setExtras] = useState([]);
   const [qty, setQty] = useState(1);
@@ -34,6 +34,10 @@ export default function ProductModal({ product, onClose, allProducts = [], categ
 
   const add = () => {
     if (!bundleReady) return toast.error("Διάλεξε όλα τα προϊόντα της προσφοράς");
+    if (product.mode && product.mode !== "all" && product.mode !== mode) {
+      setMode(product.mode);
+      toast.info(product.mode === "pickup" ? "Η παραγγελία άλλαξε σε Παραλαβή από το κατάστημα" : "Η παραγγελία άλλαξε σε Delivery");
+    }
     addItem({
       product_id: product.id, name: product.name, quantity: qty,
       size: size?.label || null, size_price: size?.price || null,
@@ -53,6 +57,11 @@ export default function ProductModal({ product, onClose, allProducts = [], categ
             {product.description && <p className="text-sm text-slate-500 mt-1">{product.description}</p>}
           </DialogHeader>
 
+          {product.mode && product.mode !== "all" && (
+            <div className={`text-xs font-bold rounded-xl px-3 py-2 ${product.mode === "pickup" ? "bg-emerald-50 text-emerald-800" : "bg-accent text-brand"}`} data-testid="modal-mode-note">
+              {product.mode === "pickup" ? "Προσφορά μόνο για παραλαβή από το κατάστημα (Αναλήψεως 174)" : "Προσφορά μόνο για Delivery"}
+            </div>
+          )}
           {bundle && slots.map((kind, i) => (
             <div key={i} data-testid={`bundle-slot-${i}`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">{kind === "pizza" ? `Πίτσα ${i + 1}` : "Σαλάτα"} · διάλεξε</div>

@@ -35,21 +35,19 @@ export default function Home() {
     setFavs(r.data);
   };
 
-  const visibleCats = useMemo(() => cats.filter((c) => !c.mode || c.mode === "all" || c.mode === mode), [cats, mode]);
-  useEffect(() => { if (visibleCats.length && !visibleCats.find((c) => c.id === active)) setActive(visibleCats[0].id); }, [visibleCats, active]);
+  const visibleCats = cats;
 
   const grouped = useMemo(() => {
     const search = q.trim().toLowerCase();
     const map = {};
     for (const c of visibleCats) map[c.id] = [];
     for (const p of prods) {
-      if (p.mode && p.mode !== "all" && p.mode !== mode) continue;
       if (veganOnly && !(p.tags || []).includes("νηστίσιμο")) continue;
       if (search && !(p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search))) continue;
       if (map[p.category_id]) map[p.category_id].push(p);
     }
     return map;
-  }, [prods, visibleCats, q, mode, veganOnly]);
+  }, [prods, visibleCats, q, veganOnly]);
 
   const popular = prods.filter((p) => p.popular).slice(0, 6);
 
