@@ -25,6 +25,10 @@ export default function Header() {
             <span className="hidden sm:inline">Καλάθι</span>
             {count > 0 && <span className="bg-brand text-white text-xs px-2 py-0.5 rounded-full">{count}</span>}
           </Button>
+          {user?.role === "admin" && (
+            <Button size="sm" onClick={() => nav("/admin")} data-testid="header-admin-btn"
+              className="rounded-full bg-brand hover-brand text-white font-semibold gap-2"><ShieldCheck className="w-4 h-4" /><span className="hidden sm:inline">Admin Panel</span></Button>
+          )}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

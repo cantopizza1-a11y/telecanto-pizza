@@ -1,0 +1,17 @@
+{
+  "name": "Telecanto Admin — Παραγγελίες",
+  "short_name": "Telecanto Admin",
+  "description": "Πάνελ διαχείρισης παραγγελιών Telecanto Pizza",
+  "start_url": "/admin/orders",
+  "scope": "/admin",
+  "id": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "lang": "el",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
