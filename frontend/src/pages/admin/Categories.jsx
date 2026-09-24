@@ -17,7 +17,7 @@ export default function AdminCategories() {
     setF({ name: "", slug: "", image: "" }); load();
   };
   const upd = async (c, patch) => { await http.put(`/admin/categories/${c.id}`, patch); load(); };
-  const del = async (id) => { if (!confirm("Διαγραφή;")) return; await http.delete(`/admin/categories/${id}`); load(); };
+  const del = async (id) => { if (!window.confirm("Διαγραφή;")) return; await http.delete(`/admin/categories/${id}`); load(); };
   return (
     <div className="space-y-4">
       <h1 className="font-display text-3xl font-black">Κατηγορίες</h1>

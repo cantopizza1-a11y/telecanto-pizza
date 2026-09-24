@@ -16,7 +16,7 @@ export default function AdminZones() {
     setF({ name: "", fee: 0, min_order: 0 }); load();
   };
   const upd = async (z, patch) => { await http.put(`/admin/zones/${z.id}`, patch); load(); };
-  const del = async (id) => { if (!confirm("Διαγραφή;")) return; await http.delete(`/admin/zones/${id}`); load(); };
+  const del = async (id) => { if (!window.confirm("Διαγραφή;")) return; await http.delete(`/admin/zones/${id}`); load(); };
   return (
     <div className="space-y-4">
       <h1 className="font-display text-3xl font-black">Ζώνες Delivery</h1>

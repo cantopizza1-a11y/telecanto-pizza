@@ -23,7 +23,7 @@ export default function AdminProducts() {
 
   const edit = (p) => { setF({ ...empty, ...p, sizes: p.sizes || [], extras: p.extras || [], tags: p.tags || [] }); setOpen(true); };
   const toggleTag = (t) => setF({ ...f, tags: f.tags.includes(t) ? f.tags.filter((x) => x !== t) : [...f.tags, t] });
-  const del = async (id) => { if (!confirm("Διαγραφή;")) return; await http.delete(`/admin/products/${id}`); load(); };
+  const del = async (id) => { if (!window.confirm("Διαγραφή;")) return; await http.delete(`/admin/products/${id}`); load(); };
   const save = async () => {
     if (!f.name || !f.category_id) return toast.error("Απαιτούμενα πεδία");
     const body = { ...f, price: parseFloat(f.price) || 0,
