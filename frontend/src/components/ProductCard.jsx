@@ -6,7 +6,7 @@ export default function ProductCard({ product, onOpen, isFav, onToggleFav }) {
     <button data-testid={`product-card-${product.id}`} onClick={() => onOpen(product)}
       className="text-left bg-white rounded-2xl border border-slate-200 p-3 flex gap-3 card-hover w-full">
       <div className="flex-1 min-w-0">
-        <div className="font-display font-bold text-slate-900 text-base line-clamp-1">{product.name}</div>
+        <div className="font-display font-bold text-slate-900 text-base line-clamp-2 leading-tight">{product.name}</div>
         {(product.tags || []).length > 0 && (
           <div className="flex gap-1 mt-1">
             {product.tags.map((t) => (
