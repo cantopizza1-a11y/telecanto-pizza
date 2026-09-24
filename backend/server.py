@@ -88,6 +88,7 @@ class Product(BaseModel):
     extras: List[dict] = []  # [{name, price}]
     toppings: List[dict] = []
     active: bool = True; popular: bool = False; order: int = 0
+    tags: List[str] = []
     mode: str = "all"  # all | delivery | pickup
     bundle: Optional[dict] = None  # {pizzas: n, salad: bool}
     created_at: str = Field(default_factory=now_iso)

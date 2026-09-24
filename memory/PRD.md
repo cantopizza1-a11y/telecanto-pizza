@@ -33,6 +33,7 @@ Full production-ready online ordering website + admin panel για Telecanto Piz
 - SEO: title/meta/OG, Restaurant JSON-LD, robots.txt, sitemap.xml (URLs point to preview domain — αλλαγή σε telecanto domain πριν go-live)
 - Πραγματικό logo (/logo.png) σε header/admin
 - Fixes: Audio.play overlay bug στο admin orders, guest order confirmation (public GET /api/orders/{id}), checkout redirect race
+- Ετικέτες προϊόντων στο Admin (Νηστίσιμο / Vegan / Καυτερό / Νέο) — chips στη φόρμα προϊόντος, badge στη λίστα admin & στις κάρτες storefront; «νηστίσιμο» τροφοδοτεί το φίλτρο vegan
 - Αλοιφές (5) & Γλυκά Καλτσόνε (3) από telecanto.gr (seed_sauces_sweets.py); κουμπί «Μόνο νηστίσιμα / vegan» στην αρχική (φιλτράρει με product.tags «νηστίσιμο»); logo μεγαλύτερο (h-20); «Προσφορές Παραλαβή από το κατάστημα»
 - Μενού telecanto.gr (Sep 2026): κατηγορίες «Πίτσες Τυρολίνα» (8 προϊόντα, μετά τις Πίτσες) & «Νηστίσιμο Μενού» (14 προϊόντα, τελευταία) από seed_extra_menu.py με εικόνες telecanto.gr 2 κατηγορίες «Προσφορές Delivery» (6 πακέτα) & «Προσφορές Παραλαβή» (9 πακέτα) από seed_offers.py, με εικόνες telecanto.gr. Product/Category `mode` (all/delivery/pickup) → εμφάνιση μόνο στο αντίστοιχο mode, backend guard στο POST /orders. Product `bundle` {pizzas, salad} → ο πελάτης διαλέγει πίτσες/σαλάτα στο modal (item.choices), εμφάνιση σε cart/admin/ticket. Admin Products: πεδία mode + bundle, Admin Categories: mode
 

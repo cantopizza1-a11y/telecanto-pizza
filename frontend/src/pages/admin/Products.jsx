@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
-const empty = { name: "", description: "", image: "", category_id: "", price: 0, sizes: [], extras: [], active: true, popular: false, mode: "all", bundle: null };
+const empty = { name: "", description: "", image: "", category_id: "", price: 0, sizes: [], extras: [], active: true, popular: false, mode: "all", bundle: null, tags: [] };
+const TAGS = [["νηστίσιμο", "Νηστίσιμο"], ["vegan", "Vegan"], ["spicy", "Καυτερό"], ["new", "Νέο"]];
 
 export default function AdminProducts() {
   const [items, setItems] = useState([]);
@@ -20,7 +21,8 @@ export default function AdminProducts() {
   };
   useEffect(load, []);
 
-  const edit = (p) => { setF({ ...empty, ...p, sizes: p.sizes || [], extras: p.extras || [] }); setOpen(true); };
+  const edit = (p) => { setF({ ...empty, ...p, sizes: p.sizes || [], extras: p.extras || [], tags: p.tags || [] }); setOpen(true); };
+  const toggleTag = (t) => setF({ ...f, tags: f.tags.includes(t) ? f.tags.filter((x) => x !== t) : [...f.tags, t] });
   const del = async (id) => { if (!confirm("Διαγραφή;")) return; await http.delete(`/admin/products/${id}`); load(); };
   const save = async () => {
     if (!f.name || !f.category_id) return toast.error("Απαιτούμενα πεδία");
@@ -55,7 +57,7 @@ export default function AdminProducts() {
               const cat = cats.find((c) => c.id === p.category_id);
               return (
                 <tr key={p.id} className="border-t border-slate-100" data-testid={`prod-row-${p.id}`}>
-                  <td className="p-3 font-semibold">{p.name}</td>
+                  <td className="p-3 font-semibold">{p.name}{(p.tags || []).length > 0 && <span className="ml-2 text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">{p.tags.join(" · ")}</span>}</td>
                   <td className="p-3 text-slate-500">{cat?.name}</td>
                   <td className="p-3">{formatEuro(p.price)}</td>
                   <td className="p-3">{p.active ? "✓" : "—"}</td>
@@ -110,6 +112,16 @@ export default function AdminProducts() {
                   <button onClick={() => setF({ ...f, extras: f.extras.filter((_, j) => j !== i) })} className="text-red-500"><X className="w-4 h-4" /></button>
                 </div>
               ))}
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-500">Ετικέτες</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {TAGS.map(([k, l]) => (
+                  <button key={k} type="button" onClick={() => toggleTag(k)} data-testid={`pf-tag-${k}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-colors ${f.tags.includes(k) ? "bg-emerald-500 border-emerald-500 text-white" : "border-slate-200 text-slate-600 hover:border-emerald-400"}`}>{l}</button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Το «Νηστίσιμο» τροφοδοτεί το φίλτρο «Μόνο νηστίσιμα / vegan» της αρχικής.</p>
             </div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2"><Switch checked={f.active} onCheckedChange={(v) => setF({ ...f, active: v })} data-testid="pf-active" /><span className="text-sm">Ενεργό</span></label>
