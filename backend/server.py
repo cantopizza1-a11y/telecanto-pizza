@@ -2,10 +2,11 @@ from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(Path(__file__).parent / '.env')
 
-import os, uuid, jwt, bcrypt, logging, base64
+import os, uuid, jwt, bcrypt, logging, base64, asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File, BackgroundTasks
+from mailer import build_email, send_email
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -102,7 +103,7 @@ class OrderIn(BaseModel):
     items: List[OrderItemIn]
     mode: str  # delivery | pickup
     coupon_code: Optional[str] = ""
-    customer_name: str; customer_phone: str
+    customer_name: str; customer_phone: str; customer_email: Optional[str] = ""
     address: Optional[str] = ""; area: Optional[str] = ""
     address_number: Optional[str] = ""; floor: Optional[str] = ""; notes: Optional[str] = ""
     payment_method: str  # cash | iris | card_pos (pickup only)
@@ -111,6 +112,7 @@ class OrderIn(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: str
+    eta_minutes: Optional[int] = None
 
 class OfferIn(BaseModel):
     title: str; description: str = ""
@@ -335,7 +337,7 @@ async def my_orders(user=Depends(require_user)):
 @api.get("/orders/{oid}")
 async def get_order_public(oid: str):
     o = await db.orders.find_one({"id": oid}, {"_id": 0, "id": 1, "status": 1, "mode": 1, "total": 1, "subtotal": 1,
-                                              "discount": 1, "delivery_fee": 1, "scheduled_for": 1, "created_at": 1, "items": 1, "payment_method": 1})
+                                              "discount": 1, "delivery_fee": 1, "scheduled_for": 1, "created_at": 1, "items": 1, "payment_method": 1, "eta_minutes": 1, "eta_at": 1, "customer_email": 1})
     if not o: raise HTTPException(404, "Not found")
     return o
 
@@ -352,10 +354,44 @@ async def admin_order(oid: str, admin=Depends(require_admin)):
     if not o: raise HTTPException(404, "Not found")
     return clean(o)
 
+EMAIL_EVENTS = {"confirmed", "ready", "delivering"}
+
+def _notify(order: dict, event: str, eta: Optional[int]):
+    to = (order.get("customer_email") or "").strip()
+    if not to: return
+    try:
+        subject, html, text = build_email(order, event, eta)
+        send_email(to, subject, html, text)
+        db_sync_log = {"order_id": order["id"], "event": event, "to": to, "ok": True, "at": now_iso()}
+    except Exception as e:
+        logging.getLogger("telecanto.mail").exception("email failed order=%s", order["id"])
+        db_sync_log = {"order_id": order["id"], "event": event, "to": to, "ok": False, "error": str(e)[:200], "at": now_iso()}
+    asyncio.run(_log_notification(db_sync_log))
+
+async def _log_notification(doc: dict):
+    c = AsyncIOMotorClient(os.environ["MONGO_URL"])
+    await c[os.environ["DB_NAME"]].notifications.insert_one(doc); c.close()
+
 @api.put("/admin/orders/{oid}/status")
-async def update_status(oid: str, data: StatusUpdate, admin=Depends(require_admin)):
-    await db.orders.update_one({"id": oid}, {"$set": {"status": data.status}})
-    o = await db.orders.find_one({"id": oid}); return clean(o)
+async def update_status(oid: str, data: StatusUpdate, bg: BackgroundTasks, admin=Depends(require_admin)):
+    o = await db.orders.find_one({"id": oid})
+    if not o: raise HTTPException(404, "Not found")
+    if data.status == "confirmed" and not data.eta_minutes:
+        raise HTTPException(400, "Δώστε εκτιμώμενο χρόνο (λεπτά) για την αποδοχή")
+    upd = {"status": data.status}
+    if data.status == "confirmed":
+        upd["eta_minutes"] = data.eta_minutes; upd["confirmed_at"] = now_iso()
+        upd["eta_at"] = (datetime.now(timezone.utc) + timedelta(minutes=data.eta_minutes)).isoformat()
+    await db.orders.update_one({"id": oid}, {"$set": upd})
+    o = await db.orders.find_one({"id": oid})
+    if data.status in EMAIL_EVENTS and not (data.status == "ready" and o.get("mode") == "delivery"):
+        bg.add_task(_notify, clean(o), data.status, o.get("eta_minutes"))
+    return clean(o)
+
+@api.get("/admin/orders/{oid}/notifications")
+async def order_notifications(oid: str, admin=Depends(require_admin)):
+    rows = await db.notifications.find({"order_id": oid}, {"_id": 0}).sort("at", -1).to_list(20)
+    return rows
 
 @api.get("/admin/dashboard")
 async def dashboard(admin=Depends(require_admin)):

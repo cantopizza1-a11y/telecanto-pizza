@@ -1,0 +1,33 @@
+{
+  "summary": "Tested continuous new-order alarm requirement on /admin/orders. Verified: (a) pending-alarm-bar appears with 'περιμένουν αποδοχή' text as soon as an order with status='new' exists; (b) each new order row shows accept-<id> button; (c) clicking accept-<id> transitions status to 'confirmed' via PUT /api/admin/orders/{id}/status; (d) clicking accept-order-btn in the detail panel also confirms; (e) sound-toggle switches Ήχος ON/OFF, alarm bar remains visible regardless of sound state; (f) no console/pageerror events observed while alarm is active or after acceptance. HOWEVER, a CRITICAL bug was confirmed: orders auto-transition from 'new' to 'confirmed' within ~25–32 seconds of creation even when no admin action is taken, contradicting the explicit requirement 'acceptance must never be automatic'. Reproduced 3× (once via Playwright, twice via isolated backend-only requests script) and confirmed by backend access log showing an external PUT /api/admin/orders/{id}/status arriving ~30s after each POST /api/orders.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PUT /api/admin/orders/{id}/status", "issue": "Orders in status='new' are auto-updated to 'confirmed' ~25–32s after creation without any admin interaction. Verified with pure-Python requests script (no browser, no admin session open): create order -> poll every 2s -> order flips to 'confirmed' by t≈26–32s. Backend logs show a PUT hitting /status for the order at that timestamp, coming through the k8s ingress (10.227.0.71/72). No such logic exists in /app/backend/server.py or /app/frontend/src (grep 'confirmed' returns only accept()/FLOW/labels). Source is external to the reviewed code — possibly a leftover monitor/webhook/cron from prior test iterations, a hanging browser session, or an Emergent preview agent. Regardless of source, in this preview env orders ARE being auto-accepted, breaking the review acceptance criterion.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/tmp/check_auto.py", "/tmp/isolate.py", "/tmp/cleanup.py"],
+  "action_items": [
+    "Investigate the source of the mystery PUT /api/admin/orders/{id}/status that flips 'new'->'confirmed' ~30s after order creation. Check: (1) any additional service/worker running (only supervisor backend/frontend + Emergent agent plugins found here — none reference /api/admin/orders); (2) any leftover admin browser tab from earlier iterations still polling; (3) any prior test scaffolding (a background async task, apscheduler, playbook agent, webhook) that was added and not removed; (4) whether Emergent's e1_monitor / plugins.tools.agent.server may be replaying stored requests. Recommend adding request-logging middleware that logs Authorization header (masked) + User-Agent for every PUT to /api/admin/orders/*/status so the actor can be identified.",
+    "Once source is identified/removed, retest that a 'new' order remains 'new' indefinitely until a real admin click on accept-<id> or accept-order-btn."
+  ],
+  "critical_code_review_comments": [
+    "sound.js startAlarm has no upper time cap — if a pending order is never accepted the setInterval runs indefinitely; consider optional auto-cap (e.g., stop after N minutes) plus visible unmute reminder.",
+    "Orders.jsx toggleSound() calls unlockAudio() and playNewOrderSound() unconditionally when turning sound ON, but does not (re)start the alarm loop even if pending>0; the alarm will only resume on the next poll cycle (up to 8s later) via the pending-length effect. Consider calling startAlarm() directly when turning ON with pending>0 for immediate audible feedback.",
+    "The accept-<id> element uses <span role='button'> instead of <button>; keyboard/accessibility-wise a real <button> would be better and would still work with e.stopPropagation.",
+    "load() adds every returned id to seenIds before computing newCount; the pattern works but the initial page load will not badge existing pending orders (by design). Consider documenting."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only requested)", "frontend": "80% — UI/behaviour checks all pass; auto-acceptance bug is out of frontend scope but breaks the review criterion"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created 4 pickup test orders during Playwright/requests tests. All were auto-confirmed before I could cancel them (see bug). Ran /tmp/cleanup.py at end — 0 pending TEST_ orders remain (all auto-confirmed, then cancelled where possible in cleanup step).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The alarm bar UI + accept buttons + sound toggle all work per spec. The blocker is auto-confirmation ~30s after creation. Reproducer (no browser needed): /tmp/isolate.py — creates one pickup order and polls status every 2s; expect status to flip to 'confirmed' by ~t=26–32s. Verify via backend log: an ingress-origin PUT /api/admin/orders/{id}/status arrives without any admin UI action. Please identify + remove the actor before re-running frontend acceptance tests.",
+  "rca of the issue": "ROOT CAUSE (unresolved): An external caller is issuing PUT /api/admin/orders/{id}/status ~25–30s after each POST /api/orders. It is NOT in /app/backend/server.py (only place that writes 'confirmed' is inside update_status endpoint) and NOT in /app/frontend/src (grep 'confirmed' only shows labels + FLOW + the accept() handler). Candidates: (1) a leftover background task from a prior implementation that was removed from server.py but is still running in the uvicorn --reload process — try `sudo supervisorctl restart backend` and retest; (2) a persistent browser session from an earlier iteration still logged in and running a JS timer; (3) an Emergent preview-env agent or monitor. Reproduction: run /tmp/isolate.py. Mitigation: restart backend + close all admin browser sessions + retest with /tmp/isolate.py; if it still auto-confirms after backend restart, search for any other service in the cluster with access to the admin JWT."
+}

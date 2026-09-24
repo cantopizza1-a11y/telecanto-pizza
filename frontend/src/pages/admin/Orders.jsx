@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { http, formatEuro, STATUS_LABELS, STATUS_COLORS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Printer, Volume2, VolumeX, BellRing, Check } from "lucide-react";
 import { playNewOrderSound, soundEnabled, setSoundEnabled, unlockAudio, startAlarm, stopAlarm, alarmActive } from "@/lib/sound";
 
@@ -34,12 +35,17 @@ export default function AdminOrders() {
     return () => { clearInterval(i); window.removeEventListener("pointerdown", unlock); };
   }, []);
 
-  const setStatus = async (id, status) => {
-    await http.put(`/admin/orders/${id}/status`, { status });
+  const setStatus = async (id, status, eta) => {
+    try {
+      await http.put(`/admin/orders/${id}/status`, { status, eta_minutes: eta });
+    } catch (e) { toast.error(e.response?.data?.detail || "Σφάλμα"); return; }
     await load();
-    if (sel?.id === id) setSel((s) => ({ ...s, status }));
+    if (sel?.id === id) setSel((s) => ({ ...s, status, ...(eta ? { eta_minutes: eta } : {}) }));
+    if (status === "confirmed") toast.success(`Αποδοχή — ο πελάτης ενημερώνεται με email (~${eta}')`);
   };
-  const accept = (o) => { unlockAudio(); setStatus(o.id, "confirmed"); };
+  const [etaFor, setEtaFor] = useState(null);
+  const accept = (o) => { unlockAudio(); setEtaFor(o); };
+  const confirmWithEta = (mins) => { const o = etaFor; setEtaFor(null); setStatus(o.id, "confirmed", mins); };
 
   return (
     <div className="space-y-4">
@@ -58,6 +64,21 @@ export default function AdminOrders() {
         )}
         </div>
       </div>
+      {etaFor && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setEtaFor(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()} data-testid="eta-dialog">
+            <h3 className="font-display font-black text-xl">Αποδοχή #{etaFor.id.slice(0, 8)}</h3>
+            <p className="text-sm text-slate-600 mt-1">{etaFor.mode === "pickup" ? "Σε πόσα λεπτά θα είναι έτοιμη για παραλαβή;" : "Σε πόσα λεπτά θα παραδοθεί;"} Ο πελάτης θα λάβει email{etaFor.customer_email ? ` στο ${etaFor.customer_email}` : " (δεν έδωσε email)"}.</p>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {(etaFor.mode === "pickup" ? [15, 20, 30, 40, 45, 60] : [30, 40, 45, 50, 60, 75]).map((m) => (
+                <button key={m} onClick={() => confirmWithEta(m)} data-testid={`eta-${m}`}
+                  className="h-14 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 font-black text-lg">{m}'</button>
+              ))}
+            </div>
+            <button onClick={() => setEtaFor(null)} className="mt-4 text-sm text-slate-500 w-full" data-testid="eta-cancel">Άκυρο</button>
+          </div>
+        </div>
+      )}
       {pending.length > 0 && (
         <div className="bg-red-600 text-white rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 new-order-pulse" data-testid="pending-alarm-bar">
           <BellRing className="w-6 h-6 shrink-0" />
@@ -94,7 +115,8 @@ export default function AdminOrders() {
           <div className="bg-white border border-slate-200 rounded-2xl p-4 sticky top-4 self-start" data-testid="order-detail">
             <div className="text-xs text-slate-400 font-mono">#{sel.id.slice(0, 8)}</div>
             <div className="font-display font-black text-xl">{sel.customer_name}</div>
-            <div className="text-sm text-slate-600">{sel.customer_phone}</div>
+            <div className="text-sm text-slate-600">{sel.customer_phone}{sel.customer_email && <span className="block text-xs text-slate-500" data-testid="order-email">{sel.customer_email}</span>}</div>
+            {sel.eta_minutes && <div className="text-xs font-bold text-emerald-700 mt-1" data-testid="order-eta">Εκτίμηση: ~{sel.eta_minutes}' {sel.eta_at && `(έως ${new Date(sel.eta_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })})`}</div>}
             {sel.mode === "delivery" && <div className="text-sm mt-1">{sel.address} {sel.address_number} · {sel.area} {sel.floor && `· Όροφος ${sel.floor}`}</div>}
             {sel.notes && <div className="text-xs italic text-slate-500 mt-1">{sel.notes}</div>}
             {sel.scheduled_for && <div className="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mt-2 inline-block" data-testid="order-scheduled">Προγραμματισμένη: {new Date(sel.scheduled_for).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" })}</div>}
@@ -119,8 +141,8 @@ export default function AdminOrders() {
               )}
               <div className="text-xs font-bold uppercase text-slate-500">Κατάσταση</div>
               <div className="flex flex-wrap gap-1">
-                {FLOW.map((s) => (
-                  <button key={s} onClick={() => setStatus(sel.id, s)} data-testid={`status-${s}`}
+                {FLOW.filter((s) => s !== "confirmed" || sel.status !== "new").map((s) => (
+                  <button key={s} onClick={() => s === "confirmed" ? accept(sel) : setStatus(sel.id, s)} data-testid={`status-${s}`}
                     className={`text-xs px-2 py-1 rounded-full font-bold ${sel.status === s ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
                     {STATUS_LABELS[s]}
                   </button>

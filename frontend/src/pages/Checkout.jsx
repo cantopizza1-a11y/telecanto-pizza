@@ -26,7 +26,7 @@ export default function Checkout() {
   const [payment, setPayment] = useState("cash");
   useEffect(() => { if (mode === "delivery" && payment === "card_pos") setPayment("cash"); }, [mode, payment]);
   const [form, setForm] = useState({
-    name: user?.name || "", phone: user?.phone || "",
+    name: user?.name || "", phone: user?.phone || "", email: user?.email || "",
     area: "", address: "", address_number: "", floor: "", notes: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -46,13 +46,14 @@ export default function Checkout() {
 
   const submit = async () => {
     if (!form.name || !form.phone) return toast.error("Συμπλήρωσε όνομα & τηλέφωνο");
+    if (!/^\S+@\S+\.\S+$/.test(form.email || "")) return toast.error("Συμπλήρωσε έγκυρο email για την ειδοποίηση");
     if (mode === "delivery" && (!form.address || !zoneId)) return toast.error("Συμπλήρωσε διεύθυνση & ζώνη");
     if (scheduledFor && new Date(scheduledFor).getTime() < Date.now() + 25 * 60000) return toast.error("Η ώρα πρέπει να είναι τουλάχιστον 25' μετά");
     setSubmitting(true);
     try {
       setDone(true);
       const { data } = await http.post("/orders", {
-        items, mode, customer_name: form.name, customer_phone: form.phone,
+        items, mode, customer_name: form.name, customer_phone: form.phone, customer_email: form.email.trim(),
         address: form.address, area: zone?.name || form.area,
         address_number: form.address_number, floor: form.floor, notes: form.notes,
         payment_method: payment, subtotal, delivery_fee: deliveryFee, discount, total,
@@ -92,7 +93,9 @@ export default function Checkout() {
         <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 mt-3">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Στοιχεία πελάτη</div>
           <Input placeholder="Όνομα" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-name" />
-          <Input placeholder="Τηλέφωνο" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} data-testid="input-phone" />
+          <Input placeholder="Τηλέφωνο *" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} data-testid="input-phone" />
+          <Input placeholder="Email * (για ειδοποίηση αποδοχής & χρόνου παράδοσης)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="input-email" />
+          <p className="text-[11px] text-slate-500">Θα σας στείλουμε email μόλις γίνει αποδεκτή η παραγγελία, με τον εκτιμώμενο χρόνο.</p>
         </div>
 
         {/* Address */}

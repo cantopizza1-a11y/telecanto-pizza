@@ -23,7 +23,8 @@ export default function OrderConfirm() {
             <CheckCircle2 className="w-9 h-9 text-emerald-600" />
           </div>
           <h1 className="font-display text-2xl font-black">Η παραγγελία σου καταχωρήθηκε!</h1>
-          <p className="text-slate-500 mt-1">Θα την επιβεβαιώσουμε άμεσα.</p>
+          <p className="text-slate-500 mt-1">{order?.status === "new" ? "Θα την επιβεβαιώσουμε άμεσα — θα λάβετε email με τον χρόνο." : order?.eta_minutes ? `Έγινε αποδεκτή! Εκτίμηση ~${order.eta_minutes}' (${order.mode === "pickup" ? "παραλαβή" : "παράδοση"} έως ${order.eta_at ? new Date(order.eta_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" }) : ""})` : "Θα την επιβεβαιώσουμε άμεσα."}</p>
+          {order?.customer_email && <p className="text-xs text-slate-400 mt-1" data-testid="confirm-email">Ειδοποιήσεις στο {order.customer_email}</p>}
           {order && (
             <>
               <div className="mt-4 inline-block bg-accent text-brand px-4 py-1 rounded-full text-sm font-bold">
