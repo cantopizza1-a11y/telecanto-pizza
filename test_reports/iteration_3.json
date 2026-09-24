@@ -1,0 +1,41 @@
+{
+  "summary": "Verified fixes for user bug reports: (1) delivery/pickup offer sections both visible on Home regardless of selected mode, with mode badges + auto-switch UX; (2) Ορεκτικά & Πιάτα (appetizers) reseeded to 22 items. All targeted acceptance criteria pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": [{"screen": "ProductModal", "issues": ["Still missing DialogDescription/aria-describedby (a11y warning, carried over from iter1/iter2 — non-blocking)"]}]},
+  "test_report_links": ["/app/backend/tests/test_offers_and_schedule.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Iter2 open items still pending: Checkout redirect race + OrderConfirm using /orders/mine (guest 401). Not in scope of this iteration but should be fixed.",
+    "server.py scheduled_for message vs threshold mismatch (25min vs '30 λεπτά') — carryover from iter2."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6 targeted checks)", "frontend": "100% (all targeted UI checks pass)"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! (unchanged)",
+  "seed_data_creation": "None this iteration; used existing seed_appetizers + offer categories.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Home now has TWO offer sections ('Προσφορές Delivery' 6 cards + 'Προσφορές Παραλαβή από το κατάστημα' 9 cards) always visible; cards carry data-testid mode-badge-delivery / mode-badge-pickup. Modal for mode-mismatched offer shows data-testid modal-mode-note and auto-switches mode via toast on add-to-cart. Appetizers category has 22 active items. Backend regression intact: pickup offer -> guest pickup order 200; delivery order containing pickup-only product -> 400 with Greek reason. Two known iter2 bugs (Checkout post-submit redirect + OrderConfirm guest auth) remain outstanding.",
+  "verification_details": {
+    "backend": {
+      "appetizers_count": 22,
+      "appetizer_name_probes_all_found": ["Ψωμάκι", "Πεινιρλί γίγας", "Φιλετίνια κοτόπουλο", "Stromboli Pepperoni & gouda"],
+      "products_mode_delivery": 6,
+      "products_mode_pickup": 9,
+      "pickup_offer_order_status": 200,
+      "delivery_order_with_pickup_only_product_status": 400,
+      "error_message": "Το «1 Πίτσα Κανονική 26cm» ισχύει μόνο για παραλαβή"
+    },
+    "frontend": {
+      "pickup_mode_delivery_offers_visible": true,
+      "pickup_mode_pickup_offers_visible": true,
+      "delivery_mode_both_sections_visible": true,
+      "delivery_offer_cards_in_delivery_section": 6,
+      "pickup_offer_cards_in_pickup_section": 9,
+      "mode_badge_delivery_count": 6,
+      "mode_badge_pickup_count": 9,
+      "modal_mode_note_visible_on_mismatch": true,
+      "toast_after_add_contains_mode_switch": "Η παραγγελία άλλαξε σε Delivery",
+      "mode_delivery_becomes_active_border_brand": true
+    }
+  }
+}
