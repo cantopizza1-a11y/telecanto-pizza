@@ -43,8 +43,8 @@ export default function AdminSettings() {
       </section>
 
       <section className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
-        <h2 className="font-display font-bold text-lg">Ελάχιστη παραγγελία</h2>
-        <label className="text-xs">Ελάχιστο ποσό προϊόντων (€) — χωρίς το κόστος delivery
+        <h2 className="font-display font-bold text-lg">Ελάχιστη παραγγελία (μόνο delivery)</h2>
+        <label className="text-xs">Ελάχιστο ποσό προϊόντων (€) για delivery — η παραλαβή δεν έχει ελάχιστο
           <Input type="number" step="0.5" value={s.min_order ?? 8} onChange={(e) => upd("min_order", parseFloat(e.target.value) || 0)} data-testid="settings-min-order" className="mt-1 max-w-[160px]" /></label>
       </section>
 

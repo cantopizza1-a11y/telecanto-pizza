@@ -323,9 +323,9 @@ async def create_order(data: OrderIn, request: Request, bg: BackgroundTasks):
     res = compute_offers(offers, items, data.mode, data.coupon_code, await _prod_cat_map())
     order["subtotal"] = round(sum(i["line_total"] for i in items), 2)
     order["discount"] = res["discount"]; order["applied_offers"] = res["applied"]
-    min_order = float(settings.get("min_order", 8) or 0)
+    min_order = float(settings.get("min_order", 8) or 0) if data.mode == "delivery" else 0.0
     if order["subtotal"] - res["discount"] < min_order - 0.001:
-        raise HTTPException(400, f"Η ελάχιστη παραγγελία είναι {min_order:.2f}€ (χωρίς το κόστος delivery)")
+        raise HTTPException(400, f"Η ελάχιστη παραγγελία για delivery είναι {min_order:.2f}€ (χωρίς το κόστος delivery)")
     order["total"] = round(order["subtotal"] - res["discount"] + order["delivery_fee"], 2)
     order.update({"id": uid(), "user_id": u["id"] if u else None,
                   "status": "new", "payment_status": "pending",

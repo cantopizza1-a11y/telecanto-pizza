@@ -8,13 +8,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { useOffers } from "@/hooks/useOffers";
 
 export default function Cart() {
-  const { items, subtotal, updateQty, removeItem, mode, coupon } = useCart();
+  const { items, subtotal, updateQty, removeItem, mode, setMode, coupon } = useCart();
   const nav = useNavigate();
   const offers = useOffers(items, mode, coupon);
   const [minFee, setMinFee] = useState(null);
   const [minOrder, setMinOrder] = useState(8);
   useEffect(() => { http.get("/settings").then((r) => setMinOrder(r.data.min_order ?? 8)).catch(() => {}); }, []);
-  const belowMin = subtotal - (offers.discount || 0) < minOrder - 0.001;
+  const belowMin = mode === "delivery" && subtotal - (offers.discount || 0) < minOrder - 0.001;
   useEffect(() => { http.get("/zones").then((r) => { const fees = r.data.map((z) => z.fee); if (fees.length) setMinFee(Math.min(...fees)); }).catch(() => {}); }, []);
   return (
     <div className="min-h-screen">
@@ -59,7 +59,7 @@ export default function Cart() {
               </div>
               {mode === "pickup" && <div className="flex justify-between font-bold pt-2 mt-2 border-t"><span>Σύνολο</span><span className="text-brand">{formatEuro(Math.max(0, subtotal - (offers.discount || 0)))}</span></div>}
               {mode === "delivery" && <p className="text-[11px] text-slate-400 mt-1">Το τελικό σύνολο υπολογίζεται στο επόμενο βήμα μόλις επιλέξετε ζώνη.</p>}
-              {belowMin && <p className="text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2 mt-2" data-testid="cart-min-order-note">Ελάχιστη παραγγελία {formatEuro(minOrder)} σε προϊόντα. Πρόσθεσε ακόμη {formatEuro(minOrder - (subtotal - (offers.discount || 0)))}.</p>}
+              {belowMin && <p className="text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2 mt-2" data-testid="cart-min-order-note">Ελάχιστη παραγγελία για delivery {formatEuro(minOrder)}. Πρόσθεσε ακόμη {formatEuro(minOrder - (subtotal - (offers.discount || 0)))} ή <button type="button" onClick={() => setMode("pickup")} className="underline font-bold" data-testid="cart-switch-to-pickup">επίλεξε Παραλαβή</button> (χωρίς ελάχιστο).</p>}
               <Button onClick={() => nav("/checkout")} data-testid="checkout-btn" disabled={belowMin}
                 className="w-full rounded-full bg-brand hover-brand h-12 mt-3 font-bold text-base disabled:bg-slate-300">Ολοκλήρωση Παραγγελίας</Button>
             </div>

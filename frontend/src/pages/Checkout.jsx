@@ -51,12 +51,12 @@ export default function Checkout() {
   const emailOk = /^\S+@\S+\.\S+$/.test((form.email || "").trim());
   const [touched, setTouched] = useState(false);
   const minOrder = settings.min_order ?? 8;
-  const belowMin = subtotal - discount < minOrder - 0.001;
+  const belowMin = mode === "delivery" && subtotal - discount < minOrder - 0.001;
   const canSubmit = form.name.trim() && phoneOk && emailOk && !belowMin && (mode === "pickup" || (form.address && zoneId));
 
   const submit = async () => {
     setTouched(true);
-    if (belowMin) return toast.error(`Η ελάχιστη παραγγελία είναι ${formatEuro(minOrder)} (χωρίς delivery)`);
+    if (belowMin) return toast.error(`Η ελάχιστη παραγγελία για delivery είναι ${formatEuro(minOrder)} — ή επιλέξτε Παραλαβή`);
     if (!form.name.trim()) return toast.error("Συμπλήρωσε το όνομά σου");
     if (!phoneOk) return toast.error("Συμπλήρωσε έγκυρο τηλέφωνο (10 ψηφία)");
     if (!emailOk) return toast.error("Συμπλήρωσε έγκυρο email για την ειδοποίηση");
@@ -194,7 +194,7 @@ export default function Checkout() {
                 className="text-brand font-bold underline underline-offset-2">Επίλεξε ζώνη ↑</button>
             ) : <span>{mode === "delivery" ? `+${formatEuro(deliveryFee)}` : formatEuro(0)}</span>}
           </div>
-          {belowMin && <p className="text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2" data-testid="min-order-note">Ελάχιστη παραγγελία {formatEuro(minOrder)} σε προϊόντα (χωρίς delivery). Λείπουν {formatEuro(minOrder - (subtotal - discount))}.</p>}
+          {belowMin && <p className="text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2" data-testid="min-order-note">Ελάχιστη παραγγελία για delivery {formatEuro(minOrder)} σε προϊόντα. Λείπουν {formatEuro(minOrder - (subtotal - discount))} — ή επιλέξτε <button type="button" onClick={() => setMode("pickup")} className="underline font-bold" data-testid="switch-to-pickup">Παραλαβή από το κατάστημα</button> χωρίς ελάχιστο.</p>}
           <div className="flex justify-between font-display font-black text-xl pt-2 border-t border-slate-100"><span>Σύνολο</span><span className="text-brand">{formatEuro(total)}</span></div>
           {!canSubmit && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2" data-testid="missing-fields-note">Για να ολοκληρωθεί η παραγγελία συμπληρώστε: {[belowMin && `προϊόντα τουλάχιστον ${formatEuro(minOrder)}`, !form.name.trim() && "όνομα", !phoneOk && "τηλέφωνο", !emailOk && "email", mode === "delivery" && !form.address && "διεύθυνση", mode === "delivery" && !zoneId && "ζώνη"].filter(Boolean).join(", ")}.</p>}
           <Button disabled={submitting} onClick={submit} data-testid="submit-order-btn"

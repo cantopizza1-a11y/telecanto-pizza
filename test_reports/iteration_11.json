@@ -1,0 +1,30 @@
+{
+  "summary": "Verified min_order (8€) feature and pick-zone-link UX end-to-end. Backend pytest /app/backend/tests/test_min_order.py: 6/6 PASS — GET /api/settings returns min_order=8; POST /api/orders with subtotal 7.5 -> 400 with Greek 'ελάχιστη παραγγελία' message; subtotal 8.0 -> 201; subtotal 7.5 + delivery_fee 0.5 (total 8.0) still 400 (delivery excluded); admin PUT /api/admin/settings {min_order:5} then a 7.5 order succeeds; restored to 8 in cleanup. Frontend: (1) Cart with one Μαργαρίτα (7,50€) shows cart-min-order-note 'Ελάχιστη παραγγελία 8,00€ σε προϊόντα. Πρόσθεσε ακόμη 0,50€.' and checkout-btn disabled=True; after incrementing to qty=2 the note disappears and checkout-btn becomes enabled. (2) In /checkout with 2 items in Delivery mode, no zone selected: pick-zone-link is visible with text 'Επίλεξε ζώνη ↑'; clicking it scrolls to and focuses #zone-select (document.activeElement.id === 'zone-select'); selecting 'Ζώνη 1 - Κέντρο Βόλου · 0,50€' removes the pick-zone-link and the totals show the +0,50€ zone fee. (3) Direct navigation to /checkout with only 7,50 in cart: min-order-note visible 'Λείπουν 0,50€' and missing-fields-note lists 'προϊόντα τουλάχιστον 8,00€' (plus name/phone/email/address/zone until filled); after filling required fields the note reduces to 'προϊόντα τουλάχιστον 8,00€, διεύθυνση, ζώνη'; clicking submit-order-btn shows toast 'Η ελάχιστη παραγγελία είναι 8,00€ (χωρίς delivery)'. (4) Admin /admin/settings settings-min-order input shows 8; saving 6 persists (GET /api/settings min_order==6); restored to 8 via same UI (persistence re-verified via API).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Checkout zone-select", "issues": ["Dev-preview only: hydration warning '<span> cannot be a child of <option>' — comes from the emergent x-source instrumentation wrapping <option> text in a <span>. Does not affect production build or functionality; already noted in prior iterations."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_min_order.py",
+    "/app/test_reports/pytest/min_order.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/server.py:326-328 — min_order check uses subtotal - discount (excluding delivery_fee) which matches the spec exactly.",
+    "settings default (server.py:468) seeds min_order=8.0 on fresh installs; SettingsIn accepts Optional[float] for min_order — good.",
+    "Cart.jsx & Checkout.jsx both derive `belowMin` locally from /api/settings — good defence-in-depth; checkout-btn and submit-order-btn are correctly gated.",
+    "pick-zone-link (Checkout.jsx:193) scrollIntoView + setTimeout(focus, 400) works but a slower device could miss the focus if 400ms is insufficient; acceptable."
+  ],
+  "updated_files": ["/app/backend/tests/test_min_order.py"],
+  "success_rate": {"backend": "100% (6/6 pytest)", "frontend": "100% — all bullet-point scenarios verified"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! (from /app/memory/test_credentials.md).",
+  "seed_data_creation": "Pytest created 2 orders (7,5€ with min_order=5 and 8,0€ with min_order=8) and cancelled both via the cleanup test. min_order restored to 8 at end of test run. No leftover non-terminal TEST_ orders.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "min_order enforced backend-side (POST /api/orders 400 with subtotal - discount < min_order) and settings endpoint exposes/allows updating min_order via /api/admin/settings. Frontend Cart, Checkout and Admin Settings all wired: data-testids used are cart-min-order-note, checkout-btn, pick-zone-link, zone-select, select-zone, min-order-note, missing-fields-note, submit-order-btn, settings-min-order. Regression test at /app/backend/tests/test_min_order.py.",
+  "rca of the issue": "N/A — no bugs found; all scenarios in the review request passed."
+}
