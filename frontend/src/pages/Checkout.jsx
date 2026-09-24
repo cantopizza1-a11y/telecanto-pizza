@@ -29,13 +29,14 @@ export default function Checkout() {
     area: "", address: "", address_number: "", floor: "", notes: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     http.get("/zones").then((r) => setZones(r.data));
     http.get("/settings").then((r) => setSettings(r.data));
   }, []);
 
-  useEffect(() => { if (items.length === 0) nav("/"); }, [items, nav]);
+  useEffect(() => { if (items.length === 0 && !done) nav("/"); }, [items, nav, done]);
 
   const zone = zones.find((z) => z.id === zoneId);
   const deliveryFee = mode === "delivery" ? (zone?.fee || 0) : 0;
@@ -45,9 +46,10 @@ export default function Checkout() {
   const submit = async () => {
     if (!form.name || !form.phone) return toast.error("Συμπλήρωσε όνομα & τηλέφωνο");
     if (mode === "delivery" && (!form.address || !zoneId)) return toast.error("Συμπλήρωσε διεύθυνση & ζώνη");
-    if (scheduledFor && new Date(scheduledFor).getTime() < Date.now() + 25 * 60000) return toast.error("Η ώρα πρέπει να είναι τουλάχιστον 30' μετά");
+    if (scheduledFor && new Date(scheduledFor).getTime() < Date.now() + 25 * 60000) return toast.error("Η ώρα πρέπει να είναι τουλάχιστον 25' μετά");
     setSubmitting(true);
     try {
+      setDone(true);
       const { data } = await http.post("/orders", {
         items, mode, customer_name: form.name, customer_phone: form.phone,
         address: form.address, area: zone?.name || form.area,
@@ -55,10 +57,11 @@ export default function Checkout() {
         payment_method: payment, subtotal, delivery_fee: deliveryFee, discount, total,
         coupon_code: coupon || "", scheduled_for: scheduledFor ? new Date(scheduledFor).toISOString() : null,
       });
+      nav(`/order/${data.id}`, { replace: true });
       clear();
-      nav(`/order/${data.id}`);
       toast.success("Η παραγγελία καταχωρήθηκε!");
     } catch (e) {
+      setDone(false);
       toast.error(e.response?.data?.detail || "Σφάλμα");
     } finally { setSubmitting(false); }
   };

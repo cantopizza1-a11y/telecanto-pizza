@@ -293,8 +293,13 @@ async def create_order(data: OrderIn, request: Request):
         except ValueError:
             raise HTTPException(400, "Μη έγκυρη ώρα")
         if sched < datetime.now(timezone.utc) + timedelta(minutes=25):
-            raise HTTPException(400, "Η ώρα παράδοσης πρέπει να είναι τουλάχιστον 30' μετά")
+            raise HTTPException(400, "Η ώρα παράδοσης πρέπει να είναι τουλάχιστον 25' μετά")
     order = data.model_dump()
+    if data.mode == "delivery":
+        zone = await db.zones.find_one({"name": data.area, "active": True})
+        order["delivery_fee"] = float(zone["fee"]) if zone else max(0.0, float(data.delivery_fee))
+    else:
+        order["delivery_fee"] = 0.0
     items = [i.model_dump() for i in data.items]
     offers = await db.offers.find({"active": True}).to_list(200)
     res = compute_offers(offers, items, data.mode, data.coupon_code, await _prod_cat_map())
@@ -317,6 +322,13 @@ async def create_order(data: OrderIn, request: Request):
 async def my_orders(user=Depends(require_user)):
     rows = await db.orders.find({"user_id": user["id"]}).sort("created_at", -1).to_list(200)
     return [clean(r) for r in rows]
+
+@api.get("/orders/{oid}")
+async def get_order_public(oid: str):
+    o = await db.orders.find_one({"id": oid}, {"_id": 0, "id": 1, "status": 1, "mode": 1, "total": 1, "subtotal": 1,
+                                              "discount": 1, "delivery_fee": 1, "scheduled_for": 1, "created_at": 1, "items": 1, "payment_method": 1})
+    if not o: raise HTTPException(404, "Not found")
+    return o
 
 @api.get("/admin/orders")
 async def admin_orders(admin=Depends(require_admin), status: Optional[str] = None):

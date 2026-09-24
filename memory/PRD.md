@@ -24,6 +24,16 @@ Full production-ready online ordering website + admin panel για Telecanto Piz
 - Loyalty: αυτόματοι πόντοι ανά € στην ολοκλήρωση, εμφάνιση στο account
 - Favorites (καρδιά), Search, guest checkout
 
+## Implemented (v2 — Sep 2026)
+- E2E testing agent: iteration_1 (MVP) + iteration_2 (Phase 2) — backend 40/40, frontend green after fixes
+- Προσφορές: τύποι bogo (1+1) / percent / fixed / combo, προαιρετικός κωδικός κουπονιού, min_order, mode (all/delivery/pickup), κατηγορίες/προϊόντα. Admin UI /admin/offers. Server-side recompute subtotal/discount/delivery_fee/total στο POST /orders. Public /api/offers (χωρίς κουπόνια), POST /api/offers/apply (preview). Home OffersStrip, Cart discount line, Checkout CouponBox
+- Προγραμματισμένες παραγγελίες: SchedulePicker στο checkout (≥25' μετά), validation backend, εμφάνιση σε admin/ticket/confirm
+- Print ticket 80mm: /admin/print/:id (auto window.print), κουμπί στο Orders
+- PWA: manifest.json, sw.js (prod only), icons, apple-touch-icon
+- SEO: title/meta/OG, Restaurant JSON-LD, robots.txt, sitemap.xml (URLs point to preview domain — αλλαγή σε telecanto domain πριν go-live)
+- Πραγματικό logo (/logo.png) σε header/admin
+- Fixes: Audio.play overlay bug στο admin orders, guest order confirmation (public GET /api/orders/{id}), checkout redirect race
+
 ## Backlog
-- P1: IRIS πραγματική διασύνδεση με πάροχο (Viva/NBG/Piraeus), scheduled orders UI, offers builder UI, "Φτιάξε τη δική σου πίτσα" wizard, PWA manifest + service worker
-- P2: Thermal receipt printer (Wi-Fi/LAN), SEO structured data (LocalBusiness, Product), sitemap.xml, per-size extras, Νηστίσιμο μενού filter
+- P1: IRIS πραγματική διασύνδεση με πάροχο (Viva/NBG/Piraeus), "Φτιάξε τη δική σου πίτσα" wizard (user skipped for now)
+- P2: Thermal printer auto-print (Wi-Fi/LAN), per-size extras, Νηστίσιμο μενού filter, sitemap/canonical σε production domain, ώρες λειτουργίας → auto store_open

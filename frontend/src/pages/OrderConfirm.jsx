@@ -8,7 +8,7 @@ export default function OrderConfirm() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   useEffect(() => {
-    const load = () => http.get("/orders/mine").then((r) => setOrder(r.data.find((o) => o.id === id))).catch(() => {});
+    const load = () => http.get(`/orders/${id}`).then((r) => setOrder(r.data)).catch(() => {});
     load();
     const i = setInterval(load, 10000);
     return () => clearInterval(i);

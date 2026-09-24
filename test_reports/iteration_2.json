@@ -1,0 +1,45 @@
+{
+  "summary": "Phase 2 E2E testing. Backend: 40/40 pytest pass (21 new Phase 2 tests + 19 regression). Coverage: offers admin CRUD (percent+code, bogo+categories, fixed+min_order, combo), public /api/offers hides code-locked offers, /offers/apply computes percent/bogo(2nd unit free)/fixed(capped)/combo correctly, coupon code case-insensitive, invalid code -> code_valid=false and offer not applied, /api/orders recomputes subtotal/discount/total server-side + stores applied_offers + accepts coupon_code, scheduled_for validation (<25min=400, valid=201, scheduled_enabled=false=400), /api/admin/orders/{id} auth (401 no auth, 200 admin), all static files (manifest/sw/robots/sitemap/logo/icon-192) return 200, index.html contains 'Telecanto' + ld+json. Frontend: Home offers-strip + /logo.png render; Cart cart-discount shows -7.50€ for 2× bogo pizza; Checkout coupon TELE10 -> coupon-status 'Ενεργό κουπόνι' + applied-offer-* row -0.75€ + total reduced; schedule-later reveals schedule-input; Admin offers page CRUD (create/toggle/delete) works; /admin/orders status-preparing button now clickable (audio overlay bug fixed, no emergent-overlay-host); /admin/print/{id} renders full ticket with items/totals/scheduled time. TWO NEW BUGS FOUND on customer-facing order completion flow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout.jsx submit()", "issue": "After successful order submit, `clear()` empties cart which fires Checkout's `useEffect(() => { if (items.length===0) nav('/') }, [items])` — this races with the subsequent `nav('/order/${data.id}')`. Result: user lands on Home (/) instead of the Order Confirmation page. Repro: any successful checkout (guest or logged-in). Fix: guard the redirect useEffect so it doesn't fire after a submission (e.g., useRef flag set before clear()), or nav to /order/{id} BEFORE calling clear() (nav happens synchronously in React Router; then clear can run in a microtask).", "selector": "[data-testid='submit-order-btn']", "priority": "HIGH"},
+      {"component": "OrderConfirm.jsx", "issue": "The page fetches orders via `/api/orders/mine` which requires authentication. For guest checkouts (majority of pizza-ordering users) this returns 401 and `order` stays null — the page shows only the header/'Παραγγελία σου καταχωρήθηκε' but hides the details block (Παραγγελία #, Τρόπος, Ώρα for scheduled, Έκπτωση, Σύνολο). Also causes the request test 'Order confirm shows Ώρα' to fail. Fix: add a public `GET /api/orders/{id}` endpoint (or fetch by id from stored guest-order data) and use that. Combined with the redirect bug above, guest users effectively never see the confirmation page.", "selector": "[data-testid='order-confirm']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Guest checkout → order confirmation", "issue": "End-to-end broken: submit → toast success is shown but user is redirected to '/' rather than /order/{id}, and even if routed correctly, OrderConfirm can't fetch guest orders. Backend order is created successfully (verified via /admin/orders/{id}).", "affected_selectors": ["[data-testid='submit-order-btn']", "[data-testid='order-confirm']"]}
+    ],
+    "design_issues": [
+      {"screen": "Checkout select-zone (Chromium hydration warning)", "issues": ["<span> as child of <option> causes hydration warning (from x-tool instrumentation). Cosmetic, no functional impact — same as iter1."]},
+      {"screen": "ProductModal DialogContent", "issues": ["Still missing DialogDescription/aria-describedby (a11y warning) — same as iter1, unresolved."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_offers_and_schedule.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/phase2_results.xml"
+  ],
+  "action_items": [
+    "Fix Checkout.jsx: prevent items-empty redirect from firing after order submit. Option A: set `submittedRef.current=true` before clear() and check it in the redirect useEffect. Option B: nav('/order/${id}') first, then clear() in a setTimeout(...,0).",
+    "Add public `GET /api/orders/{oid}` endpoint (or expose the created order back to Checkout via localStorage and read it in OrderConfirm) so guest orders can be viewed. Update OrderConfirm.jsx to use it instead of /orders/mine.",
+    "(Optional carryover) Fix DialogDescription/aria-describedby a11y warning on ProductModal and Products admin dialogs."
+  ],
+  "critical_code_review_comments": [
+    "server.py compute_offers: bogo uses `sorted(units, reverse=True)[1::2]` which discounts every 2nd unit from the CHEAPER pairs (correct semantics for pairing highest-with-lowest but ensure it matches store policy of '2ο τεμάχιο δώρο'). Currently OK.",
+    "server.py create_order: server recomputes subtotal/discount/total (good) but retains client-sent `delivery_fee` unchecked — a malicious client can pass delivery_fee=-100. Consider recomputing from zone.fee on the server.",
+    "server.py: scheduled_for validation compares parsed datetime to now+25 min while the error message says '30 λεπτά'. Message/validation mismatch (25 vs 30) — user-facing bug when scheduling at the boundary.",
+    "OrderConfirm: uses /orders/mine (auth) → guests can never see their confirmation. Need /api/orders/{oid} public endpoint.",
+    "Checkout: useEffect redirect races with nav after submit — actual bug repro'd."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_offers_and_schedule.py (new, 21 tests)"
+  ],
+  "success_rate": {"backend": "100% (40/40)", "frontend": "~85% (admin flows and offers/cart integration fully green; order confirmation flow broken end-to-end)"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! — verified working (Login via /login with data-testid auth-email/auth-password/auth-submit; note: NOT login-email/login-password)",
+  "seed_data_creation": "Test offers created and deleted within each test (TEST_PERCENT/BOGO/FIXED/COMBO/HIDDEN/PCT_RECOMPUTE/FIXBIG/COMBO_C/PCT/BOGO_P/UI_OFFER). A few guest+scheduled test orders remain in db.orders (needed for admin/detail/print verification).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 2 backend is solid — 40 tests all green. Frontend Phase 2 features (offers strip, cart discount, coupon box, schedule picker, admin offers, admin print ticket, admin status buttons) all work. The two remaining bugs are on the customer order-completion flow (Checkout redirect + OrderConfirm auth). Auth testids on Login are 'auth-email'/'auth-password'/'auth-submit' (NOT login-*). BOGO seed offer applies to first product in db (id of Μαργαρίτα 7.50€). TELE10 coupon = 10% percent offer.",
+  "rca of the issue": "Checkout redirect: React batches the state updates from clear() (items→[]) and the imperative nav('/order/{id}') from react-router-dom. On commit, the still-mounted Checkout re-renders once with items=[] before route change unmounts it; the redirect useEffect sees items.length===0 and calls nav('/'), which overrides the previous nav('/order/{id}'). OrderConfirm broken for guests: OrderConfirm.jsx line 11 calls http.get('/orders/mine') — this endpoint has require_user dependency in server.py:317 which returns 401 without a Bearer token → catch swallows it → order state stays null → UI renders header + generic success text only, hiding the details block (which contains 'Ώρα' for scheduled orders)."
+}
