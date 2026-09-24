@@ -179,6 +179,7 @@ class SettingsIn(BaseModel):
     iris_enabled: Optional[bool] = None
     cash_enabled: Optional[bool] = None
     loyalty_points_per_euro: Optional[float] = None
+    min_order: Optional[float] = None
     loyalty_points_for_reward: Optional[int] = None
     loyalty_reward_value: Optional[float] = None
     iris_afm: Optional[str] = None
@@ -322,6 +323,9 @@ async def create_order(data: OrderIn, request: Request, bg: BackgroundTasks):
     res = compute_offers(offers, items, data.mode, data.coupon_code, await _prod_cat_map())
     order["subtotal"] = round(sum(i["line_total"] for i in items), 2)
     order["discount"] = res["discount"]; order["applied_offers"] = res["applied"]
+    min_order = float(settings.get("min_order", 8) or 0)
+    if order["subtotal"] - res["discount"] < min_order - 0.001:
+        raise HTTPException(400, f"Η ελάχιστη παραγγελία είναι {min_order:.2f}€ (χωρίς το κόστος delivery)")
     order["total"] = round(order["subtotal"] - res["discount"] + order["delivery_fee"], 2)
     order.update({"id": uid(), "user_id": u["id"] if u else None,
                   "status": "new", "payment_status": "pending",
@@ -461,7 +465,7 @@ async def del_zone(zid: str, admin=Depends(require_admin)):
 
 # ---------- settings ----------
 DEFAULT_SETTINGS = {"_id": "main", "store_open": True, "pickup_enabled": True,
-                    "delivery_enabled": True, "scheduled_enabled": True,
+                    "delivery_enabled": True, "scheduled_enabled": True, "min_order": 8.0,
                     "iris_enabled": False, "cash_enabled": True,
                     "loyalty_points_per_euro": 1.0, "loyalty_points_for_reward": 100,
                     "loyalty_reward_value": 5.0,

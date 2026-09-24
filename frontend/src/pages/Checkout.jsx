@@ -50,10 +50,13 @@ export default function Checkout() {
   const phoneOk = /^\+?[0-9\s-]{10,15}$/.test((form.phone || "").trim());
   const emailOk = /^\S+@\S+\.\S+$/.test((form.email || "").trim());
   const [touched, setTouched] = useState(false);
-  const canSubmit = form.name.trim() && phoneOk && emailOk && (mode === "pickup" || (form.address && zoneId));
+  const minOrder = settings.min_order ?? 8;
+  const belowMin = subtotal - discount < minOrder - 0.001;
+  const canSubmit = form.name.trim() && phoneOk && emailOk && !belowMin && (mode === "pickup" || (form.address && zoneId));
 
   const submit = async () => {
     setTouched(true);
+    if (belowMin) return toast.error(`Η ελάχιστη παραγγελία είναι ${formatEuro(minOrder)} (χωρίς delivery)`);
     if (!form.name.trim()) return toast.error("Συμπλήρωσε το όνομά σου");
     if (!phoneOk) return toast.error("Συμπλήρωσε έγκυρο τηλέφωνο (10 ψηφία)");
     if (!emailOk) return toast.error("Συμπλήρωσε έγκυρο email για την ειδοποίηση");
@@ -126,8 +129,8 @@ export default function Checkout() {
         {mode === "delivery" && (
           <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 mt-3">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Διεύθυνση</div>
-            <select value={zoneId} onChange={(e) => setZoneId(e.target.value)} data-testid="select-zone"
-              className="w-full h-11 border border-slate-200 rounded-xl px-3">
+            <select id="zone-select" value={zoneId} onChange={(e) => setZoneId(e.target.value)} data-testid="select-zone"
+              className={`w-full h-11 border-2 rounded-xl px-3 font-semibold ${zoneId ? "border-slate-200" : "border-brand bg-accent/40"}`}>
               <option value="">Επιλογή ζώνης / περιοχής</option>
               {zones.map((z) => <option key={z.id} value={z.id}>{z.name} · {formatEuro(z.fee)}</option>)}
             </select>
@@ -185,9 +188,15 @@ export default function Checkout() {
           {offers.applied?.map((a) => (
             <div key={a.id} className="flex justify-between text-sm text-emerald-700 font-semibold" data-testid={`applied-offer-${a.id}`}><span>{a.title}</span><span>-{formatEuro(a.discount)}</span></div>
           ))}
-          <div className="flex justify-between text-sm" data-testid="checkout-delivery-fee"><span>{mode === "delivery" ? `Κόστος delivery${zone ? ` (${zone.name})` : ""}` : "Παραλαβή από το κατάστημα"}</span><span>{mode === "delivery" ? (zone ? `+${formatEuro(deliveryFee)}` : "επίλεξε ζώνη") : formatEuro(0)}</span></div>
+          <div className="flex justify-between text-sm items-center" data-testid="checkout-delivery-fee"><span>{mode === "delivery" ? `Κόστος delivery${zone ? ` (${zone.name})` : ""}` : "Παραλαβή από το κατάστημα"}</span>
+            {mode === "delivery" && !zone ? (
+              <button type="button" data-testid="pick-zone-link" onClick={() => { const el = document.getElementById("zone-select"); el?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => el?.focus(), 400); }}
+                className="text-brand font-bold underline underline-offset-2">Επίλεξε ζώνη ↑</button>
+            ) : <span>{mode === "delivery" ? `+${formatEuro(deliveryFee)}` : formatEuro(0)}</span>}
+          </div>
+          {belowMin && <p className="text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2" data-testid="min-order-note">Ελάχιστη παραγγελία {formatEuro(minOrder)} σε προϊόντα (χωρίς delivery). Λείπουν {formatEuro(minOrder - (subtotal - discount))}.</p>}
           <div className="flex justify-between font-display font-black text-xl pt-2 border-t border-slate-100"><span>Σύνολο</span><span className="text-brand">{formatEuro(total)}</span></div>
-          {!canSubmit && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2" data-testid="missing-fields-note">Για να ολοκληρωθεί η παραγγελία συμπληρώστε: {[!form.name.trim() && "όνομα", !phoneOk && "τηλέφωνο", !emailOk && "email", mode === "delivery" && !form.address && "διεύθυνση", mode === "delivery" && !zoneId && "ζώνη"].filter(Boolean).join(", ")}.</p>}
+          {!canSubmit && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2" data-testid="missing-fields-note">Για να ολοκληρωθεί η παραγγελία συμπληρώστε: {[belowMin && `προϊόντα τουλάχιστον ${formatEuro(minOrder)}`, !form.name.trim() && "όνομα", !phoneOk && "τηλέφωνο", !emailOk && "email", mode === "delivery" && !form.address && "διεύθυνση", mode === "delivery" && !zoneId && "ζώνη"].filter(Boolean).join(", ")}.</p>}
           <Button disabled={submitting} onClick={submit} data-testid="submit-order-btn"
             className={`w-full rounded-full h-12 font-bold text-base mt-2 ${canSubmit ? "bg-brand hover-brand" : "bg-slate-300 text-slate-600 hover:bg-slate-300"}`}>
             {submitting ? "Αποστολή…" : "Ολοκλήρωση Παραγγελίας"}
