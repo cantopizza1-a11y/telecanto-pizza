@@ -40,9 +40,9 @@ export default function PrintTicket() {
         </div>
       ))}
       <hr />
-      <div className="row"><span>Υποσύνολο</span><span>{formatEuro(o.subtotal)}</span></div>
+      <div className="row"><span>Υποσύνολο προϊόντων</span><span>{formatEuro(o.subtotal)}</span></div>
       {o.discount > 0 && <div className="row"><span>Έκπτωση</span><span>-{formatEuro(o.discount)}</span></div>}
-      {o.mode === "delivery" && <div className="row"><span>Delivery</span><span>{formatEuro(o.delivery_fee)}</span></div>}
+      <div className="row"><span>{o.mode === "delivery" ? "Κόστος delivery" : "Παραλαβή"}</span><span>{o.mode === "delivery" ? `+${formatEuro(o.delivery_fee)}` : formatEuro(0)}</span></div>
       <div className="row b big"><span>ΣΥΝΟΛΟ</span><span>{formatEuro(o.total)}</span></div>
       <hr />
       <div className="c">Ευχαριστούμε! · telecanto.gr</div>

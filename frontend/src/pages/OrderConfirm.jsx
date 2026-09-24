@@ -34,7 +34,9 @@ export default function OrderConfirm() {
                 <div className="flex justify-between"><span>Παραγγελία</span><span className="font-mono">#{order.id.slice(0, 8)}</span></div>
                 <div className="flex justify-between"><span>Τρόπος</span><span>{order.mode === "delivery" ? "Delivery" : "Παραλαβή"}</span></div>
                 {order.scheduled_for && <div className="flex justify-between"><span>Ώρα</span><span>{new Date(order.scheduled_for).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" })}</span></div>}
+                <div className="flex justify-between"><span>Υποσύνολο προϊόντων</span><span>{formatEuro(order.subtotal ?? order.total)}</span></div>
                 {order.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Έκπτωση</span><span>-{formatEuro(order.discount)}</span></div>}
+                <div className="flex justify-between" data-testid="confirm-delivery-fee"><span>{order.mode === "delivery" ? "Κόστος delivery" : "Παραλαβή από το κατάστημα"}</span><span>{order.mode === "delivery" ? `+${formatEuro(order.delivery_fee || 0)}` : formatEuro(0)}</span></div>
                 <div className="flex justify-between font-bold pt-2 border-t"><span>Σύνολο</span><span className="text-brand">{formatEuro(order.total)}</span></div>
               </div>
             </>

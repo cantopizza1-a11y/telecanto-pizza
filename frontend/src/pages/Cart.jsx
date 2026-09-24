@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
+import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { formatEuro } from "@/lib/api";
+import { http, formatEuro } from "@/lib/api";
 import { Trash2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,6 +11,8 @@ export default function Cart() {
   const { items, subtotal, updateQty, removeItem, mode, coupon } = useCart();
   const nav = useNavigate();
   const offers = useOffers(items, mode, coupon);
+  const [minFee, setMinFee] = useState(null);
+  useEffect(() => { http.get("/zones").then((r) => { const fees = r.data.map((z) => z.fee); if (fees.length) setMinFee(Math.min(...fees)); }).catch(() => {}); }, []);
   return (
     <div className="min-h-screen">
       <Header />
@@ -45,8 +48,14 @@ export default function Cart() {
               ))}
             </div>
             <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-4">
-              <div className="flex justify-between text-slate-600"><span>Υποσύνολο</span><span>{formatEuro(subtotal)}</span></div>
+              <div className="flex justify-between text-slate-600"><span>Υποσύνολο προϊόντων</span><span>{formatEuro(subtotal)}</span></div>
               {offers.discount > 0 && <div className="flex justify-between text-emerald-700 font-semibold" data-testid="cart-discount"><span>Προσφορές</span><span>-{formatEuro(offers.discount)}</span></div>}
+              <div className="flex justify-between text-slate-500 text-sm" data-testid="cart-delivery-note">
+                <span>{mode === "delivery" ? "Κόστος delivery" : "Παραλαβή από το κατάστημα"}</span>
+                <span>{mode === "delivery" ? (minFee !== null ? `από +${formatEuro(minFee)} (ανά ζώνη)` : "ανά ζώνη") : formatEuro(0)}</span>
+              </div>
+              {mode === "pickup" && <div className="flex justify-between font-bold pt-2 mt-2 border-t"><span>Σύνολο</span><span className="text-brand">{formatEuro(Math.max(0, subtotal - (offers.discount || 0)))}</span></div>}
+              {mode === "delivery" && <p className="text-[11px] text-slate-400 mt-1">Το τελικό σύνολο υπολογίζεται στο επόμενο βήμα μόλις επιλέξετε ζώνη.</p>}
               <Button onClick={() => nav("/checkout")} data-testid="checkout-btn"
                 className="w-full rounded-full bg-brand hover-brand h-12 mt-3 font-bold text-base">Ολοκλήρωση Παραγγελίας</Button>
             </div>

@@ -157,11 +157,11 @@ export default function Checkout() {
         {/* Totals */}
         <div className="bg-white border border-slate-200 rounded-2xl p-4 mt-3 space-y-2">
           <CouponBox codeValid={offers.code_valid} />
-          <div className="flex justify-between text-sm"><span>Υποσύνολο</span><span>{formatEuro(subtotal)}</span></div>
+          <div className="flex justify-between text-sm"><span>Υποσύνολο προϊόντων</span><span>{formatEuro(subtotal)}</span></div>
           {offers.applied?.map((a) => (
             <div key={a.id} className="flex justify-between text-sm text-emerald-700 font-semibold" data-testid={`applied-offer-${a.id}`}><span>{a.title}</span><span>-{formatEuro(a.discount)}</span></div>
           ))}
-          {mode === "delivery" && <div className="flex justify-between text-sm"><span>Delivery</span><span>{formatEuro(deliveryFee)}</span></div>}
+          <div className="flex justify-between text-sm" data-testid="checkout-delivery-fee"><span>{mode === "delivery" ? `Κόστος delivery${zone ? ` (${zone.name})` : ""}` : "Παραλαβή από το κατάστημα"}</span><span>{mode === "delivery" ? (zone ? `+${formatEuro(deliveryFee)}` : "επίλεξε ζώνη") : formatEuro(0)}</span></div>
           <div className="flex justify-between font-display font-black text-xl pt-2 border-t border-slate-100"><span>Σύνολο</span><span className="text-brand">{formatEuro(total)}</span></div>
           <Button disabled={submitting} onClick={submit} data-testid="submit-order-btn"
             className="w-full rounded-full bg-brand hover-brand h-12 font-bold text-base mt-2">

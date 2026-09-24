@@ -6,7 +6,7 @@ import os, uuid, jwt, bcrypt, logging, base64, asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File, BackgroundTasks
-from mailer import build_email, send_email
+from mailer import build_email, send_email, build_store_email
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -285,7 +285,7 @@ async def upload_image(file: UploadFile = File(...), admin=Depends(require_admin
 
 # ---------- orders ----------
 @api.post("/orders")
-async def create_order(data: OrderIn, request: Request):
+async def create_order(data: OrderIn, request: Request, bg: BackgroundTasks):
     u = await current_user(request)
     settings = await db.settings.find_one({"_id": "main"}) or {}
     if not settings.get("store_open", True):
@@ -321,6 +321,7 @@ async def create_order(data: OrderIn, request: Request):
                   "status": "new", "payment_status": "pending",
                   "created_at": now_iso()})
     await db.orders.insert_one(order)
+    bg.add_task(_notify_store, clean(order))
     # loyalty
     if u:
         s = await db.settings.find_one({"_id": "main"}) or {}
@@ -371,6 +372,17 @@ def _notify(order: dict, event: str, eta: Optional[int]):
 async def _log_notification(doc: dict):
     c = AsyncIOMotorClient(os.environ["MONGO_URL"])
     await c[os.environ["DB_NAME"]].notifications.insert_one(doc); c.close()
+
+def _notify_store(order: dict):
+    to = os.environ.get("STORE_NOTIFY_EMAIL") or os.environ.get("SMTP_USERNAME")
+    try:
+        subject, html, text = build_store_email(order)
+        send_email(to, subject, html, text)
+        doc = {"order_id": order["id"], "event": "store_new_order", "to": to, "ok": True, "at": now_iso()}
+    except Exception as e:
+        logging.getLogger("telecanto.mail").exception("store email failed order=%s", order["id"])
+        doc = {"order_id": order["id"], "event": "store_new_order", "to": to, "ok": False, "error": str(e)[:200], "at": now_iso()}
+    asyncio.run(_log_notification(doc))
 
 @api.put("/admin/orders/{oid}/status")
 async def update_status(oid: str, data: StatusUpdate, bg: BackgroundTasks, admin=Depends(require_admin)):

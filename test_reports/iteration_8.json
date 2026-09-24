@@ -1,0 +1,38 @@
+{
+  "summary": "End-to-end tested Gmail SMTP email notification + ETA feature. Backend: 6/6 pytest cases pass (customer_email persists, PUT status=confirmed without eta_minutes -> 400, with eta_minutes=20 -> 200 with eta_minutes+eta_at set and notification event=confirmed ok=true within ~15s, ready event ok=true for pickup, completed does NOT create a notification, public GET /api/orders/{id} exposes eta_minutes, delivery order regression OK). Frontend customer flow: empty email at checkout shows toast 'Συμπλήρωσε έγκυρο email…'; with cantopizza1@gmail.com the order is created and /order/{id} renders confirm-email 'Ειδοποιήσεις στο cantopizza1@gmail.com'. Frontend admin flow: /admin/orders shows accept-<id>; clicking opens eta-dialog; clicking eta-20 flips row status to 'Επιβεβαιωμένη', detail panel shows order-eta 'Εκτίμηση: ~20'', success toast 'Αποδοχή — ο πελάτης ενημερώνεται με email (~20')'. Status-ready produces event=ready ok=true; status-completed produces NO notification. Customer /order/{id} after acceptance shows 'Έγινε αποδεκτή! Εκτίμηση ~20''. Real emails were sent to cantopizza1@gmail.com successfully. Iteration 7's 'auto-confirm ~30s' claim was NOT reproduced when no admin browser session was open — order 13559db7 stayed 'new' for 60s. First reproduction attempt in this run showed auto-confirm at t=10s, but that was after a prior playwright admin session had just closed and residual polling was likely present. Feature works correctly per spec.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "mailer.py build_email", "issue": "Line 51 of the email HTML template has `{{\"cash\": \"Μετρητά\", \"card_pos\": \"Κάρτα στο κατάστημα\", \"iris\": \"IRIS\"}}.get(order.get(\"payment_method\"), order.get(\"payment_method\"))` inside an f-string. Because of the doubled `{{ }}` (f-string escape) this renders literally in the email body as `{\"cash\": \"Μετρητά\", ...}.get(order.get(\"payment_method\"), ...)`  instead of the translated payment method label (e.g. 'Μετρητά'). Fix: build the label with a normal Python expression before the f-string, e.g. `pay_label = {\"cash\":\"Μετρητά\",\"card_pos\":\"Κάρτα στο κατάστημα\",\"iris\":\"IRIS\"}.get(order.get('payment_method'), order.get('payment_method',''))` then use `{pay_label}` in the f-string."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_email_eta.py",
+    "/app/test_reports/pytest/email_eta.xml"
+  ],
+  "action_items": [
+    "Fix cosmetic bug in mailer.py line 51 – payment method label is rendered literally in the email HTML instead of being translated (Μετρητά / Κάρτα στο κατάστημα / IRIS). Low priority, does not affect functionality."
+  ],
+  "critical_code_review_comments": [
+    "server.py::update_status treats eta_minutes=0 as invalid (`not data.eta_minutes`) — same as None. Fine for current UI (buttons start at 15), but if a business ever wants to allow 0-min prep it would silently 400. Consider `data.eta_minutes is None`.",
+    "server.py::_notify runs inside FastAPI BackgroundTasks but uses `asyncio.run(_log_notification(...))` after SMTP. This works because BackgroundTasks executes the sync callable in a thread, but opens a new AsyncIOMotorClient per notification. Consider reusing the module-level `db` via `run_coroutine_threadsafe` or converting to a fully async task to avoid the connection churn.",
+    "server.py:387 `data.status in EMAIL_EVENTS and not (data.status == 'ready' and o.get('mode') == 'delivery')` — logic is correct (ready email only for pickup, delivering email only fires because 'delivering' is in EMAIL_EVENTS). A small refactor to a dict/table would be more readable.",
+    "mailer.send_email uses `os.environ[...]` directly (KeyError on missing config). Given .env already exists that's OK, but a startup validation would fail faster than at first send.",
+    "Orders.jsx – `accept-<id>` element is still a <span role='button'> (from iteration 7); real <button> would be more accessible. Not blocking."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_email_eta.py"
+  ],
+  "success_rate": {"backend": "100% (6/6 pytest)", "frontend": "100% – customer checkout, admin ETA dialog, status transitions, customer /order page all pass"},
+  "test_credentials": "Admin cantopizza1@gmail.com / Telecanto2026! (from /app/memory/test_credentials.md); customer email recipient set to cantopizza1@gmail.com so all outbound mail goes to the store's own inbox as instructed.",
+  "seed_data_creation": "Created ~10 TEST_ prefixed orders during pytest + playwright runs. Ran a final cleanup pass that cancelled 8 non-terminal test orders. All remaining TEST_ orders are in 'cancelled' or 'completed' state — no pending alarm remains.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Feature is functionally complete. Only one cosmetic issue remains: mailer.py:51 renders the payment_method dict literal in the email HTML (see backend_issues.minor). Iteration 7's auto-confirm anxiety was NOT reproducible when no admin browser session was open; a stray 10s auto-confirm during this run correlated with residual polling from an earlier Playwright admin session having just closed. When testing the alarm/auto-accept in the future, either wait ~30s after closing any admin session before starting the timer, or run the isolate script in a completely fresh backend process.",
+  "rca of the issue": "Not applicable — no critical bugs found. Minor mailer.py f-string escaping bug is documented above with the concrete fix."
+}

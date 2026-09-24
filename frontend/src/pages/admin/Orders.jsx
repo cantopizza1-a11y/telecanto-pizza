@@ -128,7 +128,8 @@ export default function AdminOrders() {
                 </div>
               ))}
               {sel.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Έκπτωση {sel.applied_offers?.map((a) => a.title).join(", ")}</span><span>-{formatEuro(sel.discount)}</span></div>}
-              <div className="flex justify-between pt-2 border-t"><span>Delivery</span><span>{formatEuro(sel.delivery_fee)}</span></div>
+              <div className="flex justify-between pt-2 border-t"><span>Υποσύνολο προϊόντων</span><span>{formatEuro(sel.subtotal ?? 0)}</span></div>
+              <div className="flex justify-between"><span>{sel.mode === "delivery" ? "Κόστος delivery" : "Παραλαβή"}</span><span>{sel.mode === "delivery" ? `+${formatEuro(sel.delivery_fee)}` : formatEuro(0)}</span></div>
               <div className="flex justify-between font-black text-brand text-lg"><span>Σύνολο</span><span>{formatEuro(sel.total)}</span></div>
               <div className="text-xs text-slate-500">Πληρωμή: {{ cash: "Μετρητά", card_pos: "Κάρτα στο κατάστημα", iris: "IRIS" }[sel.payment_method] || sel.payment_method}</div>
             </div>
