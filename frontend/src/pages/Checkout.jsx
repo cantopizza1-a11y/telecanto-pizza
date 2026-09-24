@@ -44,16 +44,23 @@ export default function Checkout() {
   const discount = offers.discount || 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
+  const phoneOk = /^\+?[0-9\s-]{10,15}$/.test((form.phone || "").trim());
+  const emailOk = /^\S+@\S+\.\S+$/.test((form.email || "").trim());
+  const [touched, setTouched] = useState(false);
+  const canSubmit = form.name.trim() && phoneOk && emailOk && (mode === "pickup" || (form.address && zoneId));
+
   const submit = async () => {
-    if (!form.name || !form.phone) return toast.error("Συμπλήρωσε όνομα & τηλέφωνο");
-    if (!/^\S+@\S+\.\S+$/.test(form.email || "")) return toast.error("Συμπλήρωσε έγκυρο email για την ειδοποίηση");
+    setTouched(true);
+    if (!form.name.trim()) return toast.error("Συμπλήρωσε το όνομά σου");
+    if (!phoneOk) return toast.error("Συμπλήρωσε έγκυρο τηλέφωνο (10 ψηφία)");
+    if (!emailOk) return toast.error("Συμπλήρωσε έγκυρο email για την ειδοποίηση");
     if (mode === "delivery" && (!form.address || !zoneId)) return toast.error("Συμπλήρωσε διεύθυνση & ζώνη");
     if (scheduledFor && new Date(scheduledFor).getTime() < Date.now() + 25 * 60000) return toast.error("Η ώρα πρέπει να είναι τουλάχιστον 25' μετά");
     setSubmitting(true);
     try {
       setDone(true);
       const { data } = await http.post("/orders", {
-        items, mode, customer_name: form.name, customer_phone: form.phone, customer_email: form.email.trim(),
+        items, mode, customer_name: form.name.trim(), customer_phone: form.phone.trim(), customer_email: form.email.trim(),
         address: form.address, area: zone?.name || form.area,
         address_number: form.address_number, floor: form.floor, notes: form.notes,
         payment_method: payment, subtotal, delivery_fee: deliveryFee, discount, total,
@@ -91,11 +98,25 @@ export default function Checkout() {
 
         {/* Info */}
         <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 mt-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Στοιχεία πελάτη</div>
-          <Input placeholder="Όνομα" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-name" />
-          <Input placeholder="Τηλέφωνο *" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} data-testid="input-phone" />
-          <Input placeholder="Email * (για ειδοποίηση αποδοχής & χρόνου παράδοσης)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="input-email" />
-          <p className="text-[11px] text-slate-500">Θα σας στείλουμε email μόλις γίνει αποδεκτή η παραγγελία, με τον εκτιμώμενο χρόνο.</p>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Στοιχεία πελάτη <span className="text-brand normal-case font-semibold">(όλα υποχρεωτικά)</span></div>
+          <div>
+            <label className="text-xs font-semibold text-slate-600">Όνομα *</label>
+            <Input placeholder="Όνομα" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-name"
+              className={touched && !form.name.trim() ? "border-red-400" : ""} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-600">Τηλέφωνο *</label>
+            <Input placeholder="π.χ. 6912345678" type="tel" required inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} data-testid="input-phone"
+              className={touched && !phoneOk ? "border-red-400" : ""} />
+            {touched && !phoneOk && <p className="text-xs text-red-600 mt-1" data-testid="phone-error">Απαιτείται έγκυρο τηλέφωνο (10 ψηφία)</p>}
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-600">Email *</label>
+            <Input placeholder="π.χ. name@email.com" type="email" required inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="input-email"
+              className={touched && !emailOk ? "border-red-400" : ""} />
+            {touched && !emailOk && <p className="text-xs text-red-600 mt-1" data-testid="email-error">Απαιτείται έγκυρο email</p>}
+          </div>
+          <p className="text-[11px] text-slate-500">Θα σας στείλουμε email μόλις γίνει αποδεκτή η παραγγελία, με τον εκτιμώμενο χρόνο. Το τηλέφωνο χρησιμοποιείται μόνο αν χρειαστεί επικοινωνία.</p>
         </div>
 
         {/* Address */}
@@ -163,8 +184,9 @@ export default function Checkout() {
           ))}
           <div className="flex justify-between text-sm" data-testid="checkout-delivery-fee"><span>{mode === "delivery" ? `Κόστος delivery${zone ? ` (${zone.name})` : ""}` : "Παραλαβή από το κατάστημα"}</span><span>{mode === "delivery" ? (zone ? `+${formatEuro(deliveryFee)}` : "επίλεξε ζώνη") : formatEuro(0)}</span></div>
           <div className="flex justify-between font-display font-black text-xl pt-2 border-t border-slate-100"><span>Σύνολο</span><span className="text-brand">{formatEuro(total)}</span></div>
+          {!canSubmit && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2" data-testid="missing-fields-note">Για να ολοκληρωθεί η παραγγελία συμπληρώστε: {[!form.name.trim() && "όνομα", !phoneOk && "τηλέφωνο", !emailOk && "email", mode === "delivery" && !form.address && "διεύθυνση", mode === "delivery" && !zoneId && "ζώνη"].filter(Boolean).join(", ")}.</p>}
           <Button disabled={submitting} onClick={submit} data-testid="submit-order-btn"
-            className="w-full rounded-full bg-brand hover-brand h-12 font-bold text-base mt-2">
+            className={`w-full rounded-full h-12 font-bold text-base mt-2 ${canSubmit ? "bg-brand hover-brand" : "bg-slate-300 text-slate-600 hover:bg-slate-300"}`}>
             {submitting ? "Αποστολή…" : "Ολοκλήρωση Παραγγελίας"}
           </Button>
         </div>

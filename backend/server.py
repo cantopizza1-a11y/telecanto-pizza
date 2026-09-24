@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(Path(__file__).parent / '.env')
 
-import os, uuid, jwt, bcrypt, logging, base64, asyncio
+import os, uuid, jwt, bcrypt, logging, base64, asyncio, re
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File, BackgroundTasks
@@ -302,6 +302,12 @@ async def create_order(data: OrderIn, request: Request, bg: BackgroundTasks):
             raise HTTPException(400, "Η ώρα παράδοσης πρέπει να είναι τουλάχιστον 25' μετά")
     if data.payment_method == "card_pos" and data.mode != "pickup":
         raise HTTPException(400, "Η πληρωμή με κάρτα είναι διαθέσιμη μόνο για παραλαβή από το κατάστημα")
+    if not data.customer_name.strip():
+        raise HTTPException(400, "Το όνομα είναι υποχρεωτικό")
+    if not re.fullmatch(r"\+?[0-9\s-]{10,15}", data.customer_phone.strip()):
+        raise HTTPException(400, "Απαιτείται έγκυρο τηλέφωνο")
+    if not re.fullmatch(r"\S+@\S+\.\S+", (data.customer_email or "").strip()):
+        raise HTTPException(400, "Απαιτείται έγκυρο email")
     pids = [i.product_id for i in data.items]
     async for p in db.products.find({"id": {"$in": pids}, "mode": {"$nin": ["all", None, data.mode]}}, {"name": 1}):
         raise HTTPException(400, f"Το «{p['name']}» ισχύει μόνο για {'παραλαβή' if data.mode == 'delivery' else 'delivery'}")
