@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { http, formatEuro, STATUS_LABELS, STATUS_COLORS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, Volume2, VolumeX } from "lucide-react";
+import { playNewOrderSound, soundEnabled, setSoundEnabled, unlockAudio } from "@/lib/sound";
 
 const FLOW = ["new", "confirmed", "preparing", "ready", "delivering", "completed"];
 
@@ -10,18 +11,25 @@ export default function AdminOrders() {
   const [sel, setSel] = useState(null);
   const seenIds = useRef(new Set());
   const [newCount, setNewCount] = useState(0);
+  const [sound, setSound] = useState(soundEnabled());
+  const toggleSound = () => { const on = !sound; setSound(on); setSoundEnabled(on); if (on) { unlockAudio(); playNewOrderSound(); } };
 
   const load = () => http.get("/admin/orders").then((r) => {
     const fresh = r.data.filter((o) => o.status === "new" && !seenIds.current.has(o.id));
     r.data.forEach((o) => seenIds.current.add(o.id));
     if (fresh.length > 0 && seenIds.current.size > fresh.length) {
       setNewCount((c) => c + fresh.length);
-      try { new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=").play().catch(() => {}); } catch { /* autoplay blocked */ }
+      playNewOrderSound();
     }
     setOrders(r.data);
   });
 
-  useEffect(() => { load(); const i = setInterval(load, 8000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    load(); const i = setInterval(load, 8000);
+    const unlock = () => unlockAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => { clearInterval(i); window.removeEventListener("pointerdown", unlock); };
+  }, []);
 
   const setStatus = async (id, status) => {
     await http.put(`/admin/orders/${id}/status`, { status });
@@ -33,12 +41,18 @@ export default function AdminOrders() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-black">Παραγγελίες</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleSound} data-testid="sound-toggle" title={sound ? "Ήχος ενεργός" : "Ήχος ανενεργός"}
+            className={`h-10 px-3 rounded-full border-2 font-bold text-sm flex items-center gap-2 ${sound ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-slate-200 text-slate-500"}`}>
+            {sound ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}<span className="hidden sm:inline">{sound ? "Ήχος ON" : "Ήχος OFF"}</span>
+          </button>
         {newCount > 0 && (
           <button onClick={() => setNewCount(0)} data-testid="new-orders-badge"
             className="bg-brand text-white px-4 py-2 rounded-full font-bold new-order-pulse">
             {newCount} Νέες!
           </button>
         )}
+        </div>
       </div>
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-2 max-h-[75vh] overflow-y-auto">
@@ -78,7 +92,7 @@ export default function AdminOrders() {
               {sel.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Έκπτωση {sel.applied_offers?.map((a) => a.title).join(", ")}</span><span>-{formatEuro(sel.discount)}</span></div>}
               <div className="flex justify-between pt-2 border-t"><span>Delivery</span><span>{formatEuro(sel.delivery_fee)}</span></div>
               <div className="flex justify-between font-black text-brand text-lg"><span>Σύνολο</span><span>{formatEuro(sel.total)}</span></div>
-              <div className="text-xs text-slate-500">Πληρωμή: {sel.payment_method === "cash" ? "Μετρητά" : "IRIS"}</div>
+              <div className="text-xs text-slate-500">Πληρωμή: {{ cash: "Μετρητά", card_pos: "Κάρτα στο κατάστημα", iris: "IRIS" }[sel.payment_method] || sel.payment_method}</div>
             </div>
             <Button variant="outline" size="sm" onClick={() => window.open(`/admin/print/${sel.id}`, "_blank", "width=420,height=700")}
               className="mt-3 w-full rounded-full gap-2 font-bold" data-testid="print-ticket-btn"><Printer className="w-4 h-4" /> Εκτύπωση ticket</Button>

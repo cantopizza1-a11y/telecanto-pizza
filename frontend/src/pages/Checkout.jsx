@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Truck, Store, Banknote, QrCode } from "lucide-react";
+import { Truck, Store, Banknote, QrCode, CreditCard } from "lucide-react";
 import CouponBox from "@/components/CouponBox";
 import SchedulePicker from "@/components/SchedulePicker";
 import { useOffers } from "@/hooks/useOffers";
@@ -24,6 +24,7 @@ export default function Checkout() {
   const [settings, setSettings] = useState({});
   const [zoneId, setZoneId] = useState("");
   const [payment, setPayment] = useState("cash");
+  useEffect(() => { if (mode === "delivery" && payment === "card_pos") setPayment("cash"); }, [mode, payment]);
   const [form, setForm] = useState({
     name: user?.name || "", phone: user?.phone || "",
     area: "", address: "", address_number: "", floor: "", notes: "",
@@ -132,6 +133,13 @@ export default function Checkout() {
                 <span className="font-bold">{mode === "delivery" ? "Μετρητά κατά την παράδοση" : "Μετρητά στο κατάστημα"}</span>
               </label>
             )}
+            {mode === "pickup" && (
+              <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer ${payment === "card_pos" ? "border-brand bg-accent" : "border-slate-200"}`} data-testid="pay-card-pos">
+                <RadioGroupItem value="card_pos" />
+                <CreditCard className="w-5 h-5 text-slate-600" />
+                <span className="font-bold">Πληρωμή με κάρτα στο κατάστημα</span>
+              </label>
+            )}
             {settings.iris_enabled && (
               <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer ${payment === "iris" ? "border-brand bg-accent" : "border-slate-200"}`} data-testid="pay-iris">
                 <RadioGroupItem value="iris" />
@@ -140,7 +148,7 @@ export default function Checkout() {
               </label>
             )}
           </RadioGroup>
-          <p className="text-xs text-slate-500">Χωρίς πιστωτική κάρτα · Cash & IRIS μόνο</p>
+          <p className="text-xs text-slate-500">{mode === "pickup" ? "Μετρητά ή κάρτα (POS) κατά την παραλαβή" : "Χωρίς online κάρτα · Μετρητά κατά την παράδοση"}</p>
         </div>
 
         {/* Totals */}

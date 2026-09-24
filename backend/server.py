@@ -105,7 +105,7 @@ class OrderIn(BaseModel):
     customer_name: str; customer_phone: str
     address: Optional[str] = ""; area: Optional[str] = ""
     address_number: Optional[str] = ""; floor: Optional[str] = ""; notes: Optional[str] = ""
-    payment_method: str  # cash | iris
+    payment_method: str  # cash | iris | card_pos (pickup only)
     subtotal: float; delivery_fee: float = 0; discount: float = 0; total: float
     scheduled_for: Optional[str] = None
 
@@ -298,6 +298,8 @@ async def create_order(data: OrderIn, request: Request):
             raise HTTPException(400, "Μη έγκυρη ώρα")
         if sched < datetime.now(timezone.utc) + timedelta(minutes=25):
             raise HTTPException(400, "Η ώρα παράδοσης πρέπει να είναι τουλάχιστον 25' μετά")
+    if data.payment_method == "card_pos" and data.mode != "pickup":
+        raise HTTPException(400, "Η πληρωμή με κάρτα είναι διαθέσιμη μόνο για παραλαβή από το κατάστημα")
     pids = [i.product_id for i in data.items]
     async for p in db.products.find({"id": {"$in": pids}, "mode": {"$nin": ["all", None, data.mode]}}, {"name": 1}):
         raise HTTPException(400, f"Το «{p['name']}» ισχύει μόνο για {'παραλαβή' if data.mode == 'delivery' else 'delivery'}")

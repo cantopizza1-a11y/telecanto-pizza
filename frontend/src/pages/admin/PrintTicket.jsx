@@ -23,7 +23,7 @@ export default function PrintTicket() {
       <div className="row"><span>Παραγγελία</span><span className="b">#{o.id.slice(0, 8).toUpperCase()}</span></div>
       <div className="row"><span>Ώρα</span><span>{dt(o.created_at)}</span></div>
       {o.scheduled_for && <div className="row b"><span>ΠΡΟΓΡΑΜΜΑΤΙΣΜΕΝΗ</span><span>{dt(o.scheduled_for)}</span></div>}
-      <div className="row b big"><span>{o.mode === "delivery" ? "DELIVERY" : "ΠΑΡΑΛΑΒΗ"}</span><span>{o.payment_method === "cash" ? "ΜΕΤΡΗΤΑ" : "IRIS"}</span></div>
+      <div className="row b big"><span>{o.mode === "delivery" ? "DELIVERY" : "ΠΑΡΑΛΑΒΗ"}</span><span>{{ cash: "ΜΕΤΡΗΤΑ", card_pos: "ΚΑΡΤΑ (POS)", iris: "IRIS" }[o.payment_method] || o.payment_method}</span></div>
       <hr />
       <div className="b">{o.customer_name}</div>
       <div>{o.customer_phone}</div>
