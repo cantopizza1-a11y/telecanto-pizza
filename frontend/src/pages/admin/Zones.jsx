@@ -9,7 +9,7 @@ export default function AdminZones() {
   const [zones, setZones] = useState([]);
   const [f, setF] = useState({ name: "", fee: 0, min_order: 0 });
   const load = () => http.get("/admin/zones").then((r) => setZones(r.data));
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
   const add = async () => {
     if (!f.name) return;
     await http.post("/admin/zones", { name: f.name, fee: parseFloat(f.fee) || 0, min_order: parseFloat(f.min_order) || 0 });

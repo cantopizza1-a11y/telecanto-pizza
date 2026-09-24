@@ -19,7 +19,7 @@ export default function AdminProducts() {
     http.get("/admin/products").then((r) => setItems(r.data));
     http.get("/admin/categories").then((r) => setCats(r.data));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const edit = (p) => { setF({ ...empty, ...p, sizes: p.sizes || [], extras: p.extras || [], tags: p.tags || [] }); setOpen(true); };
   const toggleTag = (t) => setF({ ...f, tags: f.tags.includes(t) ? f.tags.filter((x) => x !== t) : [...f.tags, t] });

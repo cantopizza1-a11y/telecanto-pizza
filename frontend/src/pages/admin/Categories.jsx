@@ -10,7 +10,7 @@ export default function AdminCategories() {
   const [items, setItems] = useState([]);
   const [f, setF] = useState({ name: "", slug: "", image: "" });
   const load = () => http.get("/admin/categories").then((r) => setItems(r.data));
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
   const add = async () => {
     if (!f.name || !f.slug) return toast.error("Όνομα & slug");
     await http.post("/admin/categories", { ...f, order: items.length });
