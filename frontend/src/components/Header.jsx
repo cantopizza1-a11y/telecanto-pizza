@@ -17,7 +17,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-slate-200/70">
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-1">
-        <Link to="/" data-testid="header-home-link"><Logo /></Link>
+        <Link to="/" data-testid="header-home-link" className="-my-2"><Logo /></Link>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => nav("/cart")}
             data-testid="header-cart-btn" className="rounded-full font-semibold gap-2">
