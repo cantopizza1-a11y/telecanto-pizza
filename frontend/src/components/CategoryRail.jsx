@@ -6,7 +6,7 @@ export default function CategoryRail({ categories, active, onSelect }) {
     if (el) el.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
   }, [active]);
   return (
-    <div ref={ref} className="sticky top-[64px] z-30 bg-white border-b border-slate-200 -mx-4 px-4 py-3 overflow-x-auto no-scrollbar">
+    <div ref={ref} className="sticky top-[88px] z-30 bg-white border-b border-slate-200 -mx-4 px-4 py-3 overflow-x-auto no-scrollbar">
       <div className="flex gap-2 min-w-max">
         {categories.map((c) => (
           <button key={c.id} data-cat={c.id} data-testid={`cat-pill-${c.slug}`} onClick={() => onSelect(c.id)}

@@ -8,7 +8,7 @@ import StickyCartBar from "@/components/StickyCartBar";
 import OffersStrip from "@/components/OffersStrip";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { Truck, Store, Search, MapPin, Phone, Clock } from "lucide-react";
+import { Truck, Store, Search, MapPin, Phone, Clock, Leaf } from "lucide-react";
 
 export default function Home() {
   const [cats, setCats] = useState([]);
@@ -16,6 +16,7 @@ export default function Home() {
   const [active, setActive] = useState(null);
   const [openProd, setOpenProd] = useState(null);
   const [q, setQ] = useState("");
+  const [veganOnly, setVeganOnly] = useState(false);
   const [settings, setSettings] = useState({});
   const [favs, setFavs] = useState([]);
   const { mode, setMode } = useCart();
@@ -43,11 +44,12 @@ export default function Home() {
     for (const c of visibleCats) map[c.id] = [];
     for (const p of prods) {
       if (p.mode && p.mode !== "all" && p.mode !== mode) continue;
+      if (veganOnly && !(p.tags || []).includes("νηστίσιμο")) continue;
       if (search && !(p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search))) continue;
       if (map[p.category_id]) map[p.category_id].push(p);
     }
     return map;
-  }, [prods, visibleCats, q, mode]);
+  }, [prods, visibleCats, q, mode, veganOnly]);
 
   const popular = prods.filter((p) => p.popular).slice(0, 6);
 
@@ -98,11 +100,18 @@ export default function Home() {
           </div>
 
           {/* Search */}
-          <div className="mt-5 relative">
-            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} data-testid="search-input"
-              placeholder="Αναζήτηση προϊόντος… π.χ. κοτόπουλο"
-              className="w-full pl-11 pr-4 h-12 rounded-2xl bg-white border border-slate-200 focus:border-brand outline-none text-sm" />
+          <div className="mt-5 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} data-testid="search-input"
+                placeholder="Αναζήτηση προϊόντος… π.χ. κοτόπουλο"
+                className="w-full pl-11 pr-4 h-12 rounded-2xl bg-white border border-slate-200 focus:border-brand outline-none text-sm" />
+            </div>
+            <button onClick={() => setVeganOnly((v) => !v)} data-testid="vegan-filter-btn"
+              className={`h-12 px-4 rounded-2xl border-2 font-bold text-sm flex items-center gap-2 whitespace-nowrap transition-colors ${
+                veganOnly ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-slate-200 text-slate-700 hover:border-emerald-400"}`}>
+              <Leaf className="w-4 h-4" /><span className="hidden sm:inline">Μόνο νηστίσιμα / vegan</span><span className="sm:hidden">Vegan</span>
+            </button>
           </div>
         </div>
       </section>
@@ -114,7 +123,7 @@ export default function Home() {
         }} />
 
         {!q && <OffersStrip />}
-        {popular.length > 0 && !q && (
+        {popular.length > 0 && !q && !veganOnly && (
           <section className="mt-6">
             <h2 className="font-display text-2xl font-black mb-3">Δημοφιλή</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
