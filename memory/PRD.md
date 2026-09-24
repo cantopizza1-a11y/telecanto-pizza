@@ -33,7 +33,7 @@ Full production-ready online ordering website + admin panel για Telecanto Piz
 - SEO: title/meta/OG, Restaurant JSON-LD, robots.txt, sitemap.xml (URLs point to preview domain — αλλαγή σε telecanto domain πριν go-live)
 - Πραγματικό logo (/logo.png) σε header/admin
 - Fixes: Audio.play overlay bug στο admin orders, guest order confirmation (public GET /api/orders/{id}), checkout redirect race
-- Προσφορές telecanto.gr (Sep 2026): 2 κατηγορίες «Προσφορές Delivery» (6 πακέτα) & «Προσφορές Παραλαβή» (9 πακέτα) από seed_offers.py, με εικόνες telecanto.gr. Product/Category `mode` (all/delivery/pickup) → εμφάνιση μόνο στο αντίστοιχο mode, backend guard στο POST /orders. Product `bundle` {pizzas, salad} → ο πελάτης διαλέγει πίτσες/σαλάτα στο modal (item.choices), εμφάνιση σε cart/admin/ticket. Admin Products: πεδία mode + bundle, Admin Categories: mode
+- Μενού telecanto.gr (Sep 2026): κατηγορίες «Πίτσες Τυρολίνα» (8 προϊόντα, μετά τις Πίτσες) & «Νηστίσιμο Μενού» (14 προϊόντα, τελευταία) από seed_extra_menu.py με εικόνες telecanto.gr 2 κατηγορίες «Προσφορές Delivery» (6 πακέτα) & «Προσφορές Παραλαβή» (9 πακέτα) από seed_offers.py, με εικόνες telecanto.gr. Product/Category `mode` (all/delivery/pickup) → εμφάνιση μόνο στο αντίστοιχο mode, backend guard στο POST /orders. Product `bundle` {pizzas, salad} → ο πελάτης διαλέγει πίτσες/σαλάτα στο modal (item.choices), εμφάνιση σε cart/admin/ticket. Admin Products: πεδία mode + bundle, Admin Categories: mode
 
 ## Backlog
 - P1: IRIS πραγματική διασύνδεση με πάροχο (Viva/NBG/Piraeus), "Φτιάξε τη δική σου πίτσα" wizard (user skipped for now)
